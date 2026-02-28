@@ -1776,49 +1776,78 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let currentPollId = 1;
+    
     let currentListenerRef = null;
 
-    // 2. FONCTION DE SWITCH (Attachée à window pour être accessible)
-    window.switchSession = function(newId) {
-        if (currentListenerRef) {
-            off(currentListenerRef);
-        }
+    let currentPollId = 1;
 
-        currentPollId = newId;
+// FONCTION POUR SAUVEGARDER LES TITRES DANS FIREBASE
+window.saveTitles = function() {
+    const m1 = document.getElementById('input-m1').value;
+    const m2 = document.getElementById('input-m2').value;
+    const m3 = document.getElementById('input-m3').value;
 
-        // Mise à jour visuelle
-        const titleEl = document.getElementById('session-title');
-        if(titleEl) titleEl.innerText = `SESSION DE VOTE #${currentPollId}`;
+    const titlesPath = `config/session_${currentPollId}/titles`;
+    
+    set(ref(db, titlesPath), {
+        m1: m1 || "Choix 1",
+        m2: m2 || "Choix 2",
+        m3: m3 || "Choix 3"
+    }).then(() => {
+        alert(`Titres de la Session ${currentPollId} enregistrés !`);
+    });
+};
+
+// MISE À JOUR DE LA FONCTION SWITCH POUR CHARGER LES TITRES EXISTANTS
+window.switchSession = function(newId) {
+    if (currentListenerRef) off(currentListenerRef);
+    currentPollId = newId;
+
+    // Mettre à jour l'affichage de l'admin
+    document.getElementById('admin-session-id').innerText = `SESSION ${currentPollId}`;
+    document.getElementById('session-title').innerText = `SESSION DE VOTE #${currentPollId}`;
+
+    // 1. Charger les titres déjà enregistrés dans Firebase pour cette session
+    onValue(ref(db, `config/session_${currentPollId}/titles`), (snap) => {
+        const titles = snap.val() || { m1: "", m2: "", m3: "" };
+        document.getElementById('input-m1').value = titles.m1;
+        document.getElementById('input-m2').value = titles.m2;
+        document.getElementById('input-m3').value = titles.m3;
         
+        // Mettre à jour les labels sur l'écran géant aussi
+        if(document.getElementById('label-m1')) document.getElementById('label-m1').innerText = titles.m1;
+        if(document.getElementById('label-m2')) document.getElementById('label-m2').innerText = titles.m2;
+        if(document.getElementById('label-m3')) document.getElementById('label-m3').innerText = titles.m3;
+    }, { onlyOnce: true });
+
+    // 2. Réinitialiser les barres visuellement
+    ['m1', 'm2', 'm3'].forEach(id => {
+        const bar = document.getElementById('bar-' + id);
+        const txt = document.getElementById('txt-' + id);
+        if(bar) bar.style.height = '0%';
+        if(txt) txt.innerText = '0%';
+    });
+
+    // 3. Lancer l'écoute des votes en temps réel
+    const pollPath = `votes/session_${currentPollId}`;
+    currentListenerRef = ref(db, pollPath);
+    onValue(currentListenerRef, (snap) => {
+        const data = snap.val() || { m1: 0, m2: 0, m3: 0 };
+        const total = (data.m1 || 0) + (data.m2 || 0) + (data.m3 || 0);
+
         ['m1', 'm2', 'm3'].forEach(id => {
+            const count = data[id] || 0;
+            const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
             const bar = document.getElementById('bar-' + id);
             const txt = document.getElementById('txt-' + id);
-            if(bar) bar.style.height = '0%';
-            if(txt) txt.innerText = '0%';
+            if(bar) bar.style.height = percentage + '%';
+            if(txt) txt.innerText = percentage + '%';
         });
+    });
 
-        // Écoute Firebase
-        const pollPath = `votes/session_${currentPollId}`;
-        currentListenerRef = ref(db, pollPath);
-
-        onValue(currentListenerRef, (snap) => {
-            const data = snap.val() || { m1: 0, m2: 0, m3: 0 };
-            const total = (data.m1 || 0) + (data.m2 || 0) + (data.m3 || 0);
-
-            ['m1', 'm2', 'm3'].forEach(id => {
-                const count = data[id] || 0;
-                const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-                const bar = document.getElementById('bar-' + id);
-                const txt = document.getElementById('txt-' + id);
-                if(bar) bar.style.height = percentage + '%';
-                if(txt) txt.innerText = percentage + '%';
-            });
-        });
-
-        // Update global config pour le public
-        set(ref(db, 'config/current_active_id'), currentPollId);
-    };
+    // 4. Synchroniser les téléphones du public
+    set(ref(db, 'config/current_active_id'), currentPollId);
+};
 
     // 3. GESTION DU CLAVIER (F1)
     window.addEventListener('keydown', (event) => {
