@@ -251,7 +251,7 @@
     <body>
 
 <div id="session-indicator">
-    <span class="dot"></span> SESSION EN COURS : <span id="current-session-number">1</span>
+    <span class="dot"></span> SESSION <span id="current-session-number">1</span> EN COURS
 </div>
         
         <div id="mode-indicator"></div>
@@ -331,8 +331,6 @@
         </div>
 
         <canvas id="canvas"></canvas>
-
-        <h2 id="session-title">SESSION DE VOTE #1</h2>
 
 <div class="results">
     <div id="bar-m1" class="fill"></div> <div id="txt-m1">0%</div>
@@ -1828,8 +1826,8 @@ window.switchSession = function(newId) {
     currentPollId = newId;
 
     // Mettre à jour l'affichage de l'admin
-    document.getElementById('session-indicator').innerText = `SESSION EN COURS ${currentPollId}`;
-    document.getElementById('session-title').innerText = `SESSION DE VOTE #${currentPollId}`;
+    document.getElementById('session-indicator').innerText = `SESSION ${currentPollId} EN COURS`;
+    document.getElementById('session-title').innerText = `SESSION ${currentPollId} DE VOTE`;
 
     // 1. Charger les titres déjà enregistrés dans Firebase pour cette session
     onValue(ref(db, `config/session_${currentPollId}/titles`), (snap) => {
