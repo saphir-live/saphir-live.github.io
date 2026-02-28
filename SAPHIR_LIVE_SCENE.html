@@ -1828,7 +1828,7 @@ window.switchSession = function(newId) {
     currentPollId = newId;
 
     // Mettre à jour l'affichage de l'admin
-    document.getElementById('admin-session-id').innerText = `SESSION ${currentPollId}`;
+    document.getElementById('session-indicator').innerText = `SESSION EN COURS ${currentPollId}`;
     document.getElementById('session-title').innerText = `SESSION DE VOTE #${currentPollId}`;
 
     // 1. Charger les titres déjà enregistrés dans Firebase pour cette session
