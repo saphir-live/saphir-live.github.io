@@ -239,10 +239,53 @@
         50% { opacity: 1; text-shadow: 0 0 25px var(--neon); }
         100% { opacity: 0.6; }
     }
+
+#session-indicator {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    letter-spacing: 2px;
+    z-index: 100;
+}
+
+#current-session-number {
+    color: var(--neon);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--neon);
+}
+
+.dot {
+    height: 8px;
+    width: 8px;
+    background-color: var(--neon);
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+    box-shadow: 0 0 8px var(--neon);
+    animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+            
         </style>
     </head>
     <body>
 
+<div id="session-indicator">
+    <span class="dot"></span> SESSION EN COURS : <span id="current-session-number">1</span>
+</div>
+        
         <div id="mode-indicator"></div>
 
         <div id="ui">
