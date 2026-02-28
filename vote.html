@@ -72,23 +72,74 @@
 
         let currentPollId = "1";
 
-    // --- 1. GÉNÉRER OU RÉCUPÉRER L'ID UNIQUE DE L'APPAREIL ---
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 1. GÉNÉRER UN ID UNIQUE FIXE POUR CE NAVIGATEUR
     function getDeviceID() {
-        let id = localStorage.getItem('saphir_device_id');
+        let id = localStorage.getItem('saphir_uid');
         if (!id) {
-            id = 'ID-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            localStorage.setItem('saphir_device_id', id);
+            id = 'USR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            localStorage.setItem('saphir_uid', id);
         }
         return id;
     }
-    const myDeviceID = getDeviceID();
+    const myID = getDeviceID();
+    let currentPollId = "1";
 
-    // --- 2. ÉCOUTER LA SESSION ACTIVE ---
+    // 2. ÉCOUTER LE CHANGEMENT DE SESSION (F1)
     onValue(ref(db, 'config/current_active_id'), (snapshot) => {
         currentPollId = (snapshot.val() || "1").toString();
-        checkIfVotedOnFirebase();
+        verifierStatutVote(); // On vérifie IMMÉDIATEMENT si on a déjà voté
         loadTitles(currentPollId);
     });
+
+    // 3. LA FONCTION CLÉ : VÉRIFIER SUR FIREBASE
+    async function verifierStatutVote() {
+        const snapshot = await get(ref(db, `check_votes/session_${currentPollId}/${myID}`));
+        
+        const cards = document.querySelectorAll('.choice-card');
+        const msg = document.getElementById('status-msg');
+
+        if (snapshot.exists()) {
+            // DÉJÀ VOTÉ : On bloque tout
+            const monChoix = snapshot.val();
+            cards.forEach(card => {
+                card.style.pointerEvents = 'none';
+                card.classList.remove('selected');
+                card.style.opacity = "0.5";
+            });
+            document.getElementById('btn-' + monChoix).classList.add('selected');
+            document.getElementById('btn-' + monChoix).style.opacity = "1";
+            msg.innerText = "VOTE DÉJÀ ENREGISTRÉ";
+            msg.classList.add('visible');
+        } else {
+            // PAS ENCORE VOTÉ : On libère
+            cards.forEach(card => {
+                card.style.pointerEvents = 'auto';
+                card.style.opacity = "1";
+                card.classList.remove('selected');
+            });
+            msg.classList.remove('visible');
+        }
+    }
+
+    // 4. ACTION DE VOTER
+    window.submitVote = async function(choiceId) {
+        // Sécurité serveur : on vérifie si l'ID existe avant d'incrémenter
+        const check = await get(ref(db, `check_votes/session_${currentPollId}/${myID}`));
+        if (check.exists()) return;
+
+        // Étape A : Enregistrer l'ID de l'utilisateur pour cette session
+        await set(ref(db, `check_votes/session_${currentPollId}/${myID}`), choiceId);
+
+        // Étape B : Incrémenter le compteur global (pour tes barres)
+        const voteRef = ref(db, `votes/session_${currentPollId}/${choiceId}`);
+        await runTransaction(voteRef, (val) => (val || 0) + 1);
+
+        // Étape C : Mettre à jour l'interface
+        verifierStatutVote();
+    };
 
        // 2. CHARGER LES TITRES DYNAMIQUEMENT
         function loadTitles(id) {
@@ -99,49 +150,6 @@
                 document.getElementById('label-m3').innerText = titles.m3;
             });
         }
-
-
-    // --- 3. VÉRIFIER SI CET ID A DÉJÀ VOTÉ DANS FIREBASE ---
-    async function checkIfVotedOnFirebase() {
-        const voteSnapshot = await get(ref(db, `check_votes/session_${currentPollId}/${myDeviceID}`));
-        
-        const cards = document.querySelectorAll('.choice-card');
-        const statusMsg = document.getElementById('status-msg');
-
-        if (voteSnapshot.exists()) {
-            const chosenM = voteSnapshot.val();
-            // Bloquer l'interface
-            cards.forEach(card => card.style.pointerEvents = 'none');
-            document.getElementById('btn-' + chosenM).classList.add('selected');
-            statusMsg.innerText = "VOTE DÉJÀ ENREGISTRÉ POUR CE MORCEAU";
-            statusMsg.classList.add('visible');
-        } else {
-            // Libérer l'interface
-            cards.forEach(card => {
-                card.style.pointerEvents = 'auto';
-                card.classList.remove('selected');
-            });
-            statusMsg.classList.remove('visible');
-        }
-    }
-
-    // --- 4. ENVOYER LE VOTE SÉCURISÉ ---
-    window.submitVote = async function(choiceId) {
-        // Sécurité ultime : on vérifie une dernière fois avant d'envoyer
-        const voteSnapshot = await get(ref(db, `check_votes/session_${currentPollId}/${myDeviceID}`));
-        if (voteSnapshot.exists()) return;
-
-        // A. On marque l'ID comme "ayant voté" dans une table de contrôle
-        set(ref(db, `check_votes/session_${currentPollId}/${myDeviceID}`), choiceId);
-
-        // B. On incrémente le compteur public pour tes barres sur scène
-        const countRef = ref(db, `votes/session_${currentPollId}/${choiceId}`);
-        runTransaction(countRef, (current) => (current || 0) + 1);
-
-        // C. On rafraîchit l'interface
-        checkIfVotedOnFirebase();
-    };
-        
     </script>
 </body>
 </html>
