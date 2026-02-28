@@ -11,6 +11,26 @@
             background: var(--bg); color: white; font-family: 'Montserrat', sans-serif; 
             margin: 0; padding: 20px; text-align: center; overflow-x: hidden;
         }
+
+       #session-badge {
+    display: inline-block;
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+    text-transform: uppercase;
+}
+
+#display-session-id {
+    font-size: 0.9rem;
+}
+       
         h1 { font-family: 'Cinzel', serif; color: var(--neon); letter-spacing: 5px; margin-bottom: 5px; }
         p { opacity: 0.7; font-size: 0.9rem; margin-bottom: 30px; }
 
@@ -32,10 +52,11 @@
         
         #status-msg { margin-top: 30px; font-size: 0.8rem; color: var(--neon); opacity: 0; transition: 0.5s; }
         .visible { opacity: 1 !important; }
+       
     </style>
 </head>
 <body>
-
+    <div id="session-badge">SESSION <span id="display-session-id">1</span></div>
     <h1>SAPHIR</h1>
     <p>Choisissez la suite du concert</p>
 
@@ -71,6 +92,18 @@
         const db = getDatabase(app);
 
         let currentPollId = "1";
+
+   onValue(ref(db, 'config/current_active_id'), (snapshot) => {
+    const activeId = snapshot.val() || "1";
+    currentPollId = activeId.toString();
+
+    // AJOUTE CETTE LIGNE ICI :
+    document.getElementById('display-session-id').innerText = currentPollId;
+
+    // Le reste de ta logique (verifierStatutVote, loadTitles...)
+    verifierStatutVote();
+    loadTitles(currentPollId);
+});
 
     // 1. GÉNÉRER UN ID UNIQUE FIXE POUR CE NAVIGATEUR
     function getDeviceID() {
