@@ -4,8 +4,11 @@
         <meta charset="UTF-8">
         <title>SAPHIR LIVE!</title>
         <style>
-            :root { --neon: #00e5ff; --bg: #000; }
-            
+            :root {
+                --neon: #00e5ff;
+                --bg: #000;
+            }
+
             body {
                 margin: 0;
                 overflow: hidden;
@@ -202,71 +205,126 @@
                 object-fit: cover;
                 transform: scaleX(-1); /* Effet miroir */
             }
-            
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; text-shadow: 0 0 25px var(--neon); }
-        100% { opacity: 0.6; }
-    }
 
-#session-indicator {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.9rem;
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 20px;
-    border-radius: 50px;
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    letter-spacing: 2px;
-    z-index: 100;
-}
+            @keyframes pulse {
+                0% {
+                    opacity: 0.6;
+                }
+                50% {
+                    opacity: 1;
+                    text-shadow: 0 0 25px var(--neon);
+                }
+                100% {
+                    opacity: 0.6;
+                }
+            }
 
-#current-session-number {
-    color: var(--neon);
-    font-weight: bold;
-    text-shadow: 0 0 10px var(--neon);
-}
+            #session-indicator {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                font-family: 'Montserrat', sans-serif;
+                font-size: 0.9rem;
+                color: white;
+                background: rgba(255, 255, 255, 0.05);
+                padding: 10px 20px;
+                border-radius: 50px;
+                border: 1px solid rgba(0, 229, 255, 0.3);
+                letter-spacing: 2px;
+                z-index: 100;
+            }
 
-.dot {
-    height: 8px;
-    width: 8px;
-    background-color: var(--neon);
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 10px;
-    box-shadow: 0 0 8px var(--neon);
-    animation: blink 1.5s infinite;
-}
+            #current-session-number {
+                color: var(--neon);
+                font-weight: bold;
+                text-shadow: 0 0 10px var(--neon);
+            }
 
-@keyframes blink {
-    0% { opacity: 0.3; }
-    50% { opacity: 1; }
-    100% { opacity: 0.3; }
-}
+            .dot {
+                height: 8px;
+                width: 8px;
+                background-color: var(--neon);
+                border-radius: 50%;
+                display: inline-block;
+                margin-right: 10px;
+                box-shadow: 0 0 8px var(--neon);
+                animation: blink 1.5s infinite;
+            }
 
-            .results-votes { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 60px; padding-bottom: 100px; }
+            @keyframes blink {
+                0% {
+                    opacity: 0.3;
+                }
+                50% {
+                    opacity: 1;
+                }
+                100% {
+                    opacity: 0.3;
+                }
+            }
 
-        .col { display: flex; flex-direction: column; align-items: center; width: 220px; }
+            .results-votes {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: flex-end;
+                gap: 60px;
+                padding-bottom: 100px;
+            }
 
-        .bar-container { width: 100px; height: 45vh; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,229,255,0.2); position: relative; border-radius: 50px 50px 0 0; overflow: hidden; }
+            .col {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 220px;
+            }
 
-        .fill { position: absolute; bottom: 0; width: 96%; height: 0%; background: #008ba3; box-shadow: 0 0 40px var(--neon); transition: height 1.2s cubic-bezier(0.17, 0.67, 0.83, 0.67); border: 2px solid rgb(0, 210, 255); }
+            .bar-container {
+                width: 100px;
+                height: 45vh;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(0,229,255,0.2);
+                position: relative;
+                border-radius: 50px 50px 0 0;
+                overflow: hidden;
+            }
 
-        .pct { font-size: 4.5rem; font-family: 'Cinzel', serif; margin-top: 20px; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+            .fill {
+                position: absolute;
+                bottom: 0;
+                width: 96%;
+                height: 0%;
+                background: #008ba3;
+                box-shadow: 0 0 40px var(--neon);
+                transition: height 1.2s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+                border: 2px solid rgb(0, 210, 255);
+            }
 
-        .label { font-size: 1.1rem; text-transform: uppercase; color: var(--neon); letter-spacing: 2px; text-align: center; margin-top: 10px; min-height: 3em; }
-            
+            .pct {
+                font-size: 4.5rem;
+                font-family: 'Cinzel', serif;
+                margin-top: 20px;
+                text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            }
+
+            .label {
+                font-size: 1.1rem;
+                text-transform: uppercase;
+                color: var(--neon);
+                letter-spacing: 2px;
+                text-align: center;
+                margin-top: 10px;
+                min-height: 3em;
+            }
+
         </style>
     </head>
     <body>
 
-<div id="session-indicator">
-    <span class="dot"></span> SESSION <span id="current-session-number">1</span> EN COURS
-</div>
-        
+        <div id="session-indicator">
+            <span class="dot"></span> SESSION <span id="current-session-number">1</span> EN COURS
+        </div>
+
         <div id="mode-indicator"></div>
 
         <div id="ui">
@@ -345,15 +403,15 @@
 
         <canvas id="canvas"></canvas>
 
-<div class="results-votes" id="votes-report">
+        <div class="results-votes" id="votes-report">
 
-        <div class="col"><div class="bar-container"><div id="bar-m1" class="fill"></div></div><div id="txt-m1" class="pct">0%</div><div class="label" id="label-m1"></div></div>
+            <div class="col"><div class="bar-container"><div id="bar-m1" class="fill"></div></div><div id="txt-m1" class="pct">0%</div><div class="label" id="label-m1"></div></div>
 
-        <div class="col"><div class="bar-container"><div id="bar-m2" class="fill"></div></div><div id="txt-m2" class="pct">0%</div><div class="label" id="label-m2"></div></div>
+            <div class="col"><div class="bar-container"><div id="bar-m2" class="fill"></div></div><div id="txt-m2" class="pct">0%</div><div class="label" id="label-m2"></div></div>
 
-        <div class="col"><div class="bar-container"><div id="bar-m3" class="fill"></div></div><div id="txt-m3" class="pct">0%</div><div class="label" id="label-m3"></div></div>
+            <div class="col"><div class="bar-container"><div id="bar-m3" class="fill"></div></div><div id="txt-m3" class="pct">0%</div><div class="label" id="label-m3"></div></div>
 
-    </div>
+        </div>
 
         <script>
             let stars = [];
@@ -1798,35 +1856,35 @@
             }
         </script>
         <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, off, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+            import { getDatabase, ref, onValue, off, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // 1. CONFIGURATION
-    const firebaseConfig = {
-  apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
-  authDomain: "saphir-live.firebaseapp.com",
-  projectId: "saphir-live",
-  storageBucket: "saphir-live.firebasestorage.app",
-  messagingSenderId: "719917557935",
-  appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
-  measurementId: "G-VQQ9H234NB"
-};
+            // 1. CONFIGURATION
+            const firebaseConfig = {
+                apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+                authDomain: "saphir-live.firebaseapp.com",
+                projectId: "saphir-live",
+                storageBucket: "saphir-live.firebasestorage.app",
+                messagingSenderId: "719917557935",
+                appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+                measurementId: "G-VQQ9H234NB"
+            };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
 
-    
-    let currentListenerRef = null;
 
-    let currentPollId = 1;
+            let currentListenerRef = null;
+
+            let currentPollId = 1;
 
             const programmeConcert = {
-    "1": { m1: "Chopin - Nocturne", m2: "Debussy - Clair de Lune", m3: "Satie - Gymnopédie" },
-    "2": { m1: "Liszt - La Campanella", m2: "Rachmaninoff - Prélude", m3: "Improvisation Jazz" },
-    "3": { m1: "Interstellar Theme", m2: "Inception - Time", m3: "Amélie Poulain" }
-};
+                "1": {m1: "Chopin - Nocturne", m2: "Debussy - Clair de Lune", m3: "Satie - Gymnopédie"},
+                "2": {m1: "Liszt - La Campanella", m2: "Rachmaninoff - Prélude", m3: "Improvisation Jazz"},
+                "3": {m1: "Interstellar Theme", m2: "Inception - Time", m3: "Amélie Poulain"}
+            };
 
-function showVotesReport() {
+            function showVotesReport() {
                 const votes = document.getElementById('votes-report');
                 votes.style = `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background: rgba(0, 0, 0, 0.95); border: 2px solid #00d2ff; border-radius: 15px;
@@ -1838,72 +1896,81 @@ function showVotesReport() {
                 const votes = document.getElementById('votes-report');
                 votes.style = `display:none;`;
             }
-            
-window.switchSession = function(newId) {
-    if (currentListenerRef) off(currentListenerRef);
-    currentPollId = newId;
 
-    // 1. RÉCUPÉRER LES TITRES DEPUIS TON TABLEAU (PROGRAMME)
-    const titresSession = programmeConcert[currentPollId] || { m1: "Choix A", m2: "Choix B", m3: "Choix C" };
+            window.switchSession = function (newId) {
+                if (currentListenerRef)
+                    off(currentListenerRef);
+                currentPollId = newId;
 
-    // 2. ENVOYER CES TITRES À FIREBASE (Pour que le public les voit)
-    set(ref(db, `config/session_${currentPollId}/titles`), titresSession);
+                // 1. RÉCUPÉRER LES TITRES DEPUIS TON TABLEAU (PROGRAMME)
+                const titresSession = programmeConcert[currentPollId] || {m1: "Choix A", m2: "Choix B", m3: "Choix C"};
 
-    // 3. MISE À JOUR VISUELLE DE TON ÉCRAN DE SCÈNE
-    document.getElementById('current-session-number').innerText = currentPollId;
-    
-    // Mettre à jour les labels des barres sur ton écran géant
-    if(document.getElementById('label-m1')) document.getElementById('label-m1').innerText = titresSession.m1;
-    if(document.getElementById('label-m2')) document.getElementById('label-m2').innerText = titresSession.m2;
-    if(document.getElementById('label-m3')) document.getElementById('label-m3').innerText = titresSession.m3;
+                // 2. ENVOYER CES TITRES À FIREBASE (Pour que le public les voit)
+                set(ref(db, `config/session_${currentPollId}/titles`), titresSession);
 
-    // 4. RÉINITIALISER LES BARRES À 0%
-    ['m1', 'm2', 'm3'].forEach(id => {
-        const bar = document.getElementById('bar-' + id);
-        const txt = document.getElementById('txt-' + id);
-        if(bar) bar.style.height = '0%';
-        if(txt) txt.innerText = '0%';
-    });
+                // 3. MISE À JOUR VISUELLE DE TON ÉCRAN DE SCÈNE
+                document.getElementById('current-session-number').innerText = currentPollId;
 
-    // 5. ÉCOUTER LES VOTES EN TEMPS RÉEL
-    const pollPath = `votes/session_${currentPollId}`;
-    currentListenerRef = ref(db, pollPath);
-    onValue(currentListenerRef, (snap) => {
-        const data = snap.val() || { m1: 0, m2: 0, m3: 0 };
-        const total = (data.m1 || 0) + (data.m2 || 0) + (data.m3 || 0);
+                // Mettre à jour les labels des barres sur ton écran géant
+                if (document.getElementById('label-m1'))
+                    document.getElementById('label-m1').innerText = titresSession.m1;
+                if (document.getElementById('label-m2'))
+                    document.getElementById('label-m2').innerText = titresSession.m2;
+                if (document.getElementById('label-m3'))
+                    document.getElementById('label-m3').innerText = titresSession.m3;
 
-        ['m1', 'm2', 'm3'].forEach(id => {
-            const count = data[id] || 0;
-            const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-            const bar = document.getElementById('bar-' + id);
-            const txt = document.getElementById('txt-' + id);
-            if(bar) bar.style.height = percentage + '%';
-            if(txt) txt.innerText = percentage + '%';
-        });
-    });
+                // 4. RÉINITIALISER LES BARRES À 0%
+                ['m1', 'm2', 'm3'].forEach(id => {
+                    const bar = document.getElementById('bar-' + id);
+                    const txt = document.getElementById('txt-' + id);
+                    if (bar)
+                        bar.style.height = '0%';
+                    if (txt)
+                        txt.innerText = '0%';
+                });
 
-    // 6. SYNCHRONISER L'ID DE SESSION POUR LE PUBLIC
-    set(ref(db, 'config/current_active_id'), currentPollId);
-};
+                // 5. ÉCOUTER LES VOTES EN TEMPS RÉEL
+                const pollPath = `votes/session_${currentPollId}`;
+                currentListenerRef = ref(db, pollPath);
+                onValue(currentListenerRef, (snap) => {
+                    const data = snap.val() || {m1: 0, m2: 0, m3: 0};
+                    const total = (data.m1 || 0) + (data.m2 || 0) + (data.m3 || 0);
+
+                    ['m1', 'm2', 'm3'].forEach(id => {
+                        const count = data[id] || 0;
+                        const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                        const bar = document.getElementById('bar-' + id);
+                        const txt = document.getElementById('txt-' + id);
+                        if (bar)
+                            bar.style.height = percentage + '%';
+                        if (txt)
+                            txt.innerText = percentage + '%';
+                    });
+                });
+
+                // 6. SYNCHRONISER L'ID DE SESSION POUR LE PUBLIC
+                set(ref(db, 'config/current_active_id'), currentPollId);
+            };
 
             // 3. GESTION DU CLAVIER (F1)
-    window.addEventListener('keydown', (event) => {
-        if (event.key === "F1") {
-            event.preventDefault();
-            masquerVotesReport();
-            let nextId = currentPollId + 1;
-            if (nextId > 3) nextId = 1; 
-            window.switchSession(nextId);
-        }
-        if (event.key === "F2") {
-          event.preventDefault();
-          showVotesReport();
-        }
-    });
+            window.addEventListener('keydown', (event) => {
+                if (event.key === "F1") {
+                    event.preventDefault();
+                    masquerVotesReport();
+                    let nextId = currentPollId + 1;
+                    if (nextId > 3)
+                        nextId = 1;
+                    window.switchSession(nextId);
+                }
+                if (event.key === "F2") {
+                    event.preventDefault();
+                    showVotesReport();
+                }
+            });
 
-    // 4. LANCEMENT INITIAL
-    window.switchSession(1);
+            // 4. LANCEMENT INITIAL
+            window.switchSession(1);
 
-</script>
+        </script>
     </body>
 </html>
