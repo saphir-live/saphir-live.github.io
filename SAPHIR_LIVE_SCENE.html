@@ -1862,6 +1862,11 @@ window.switchSession = function(newId) {
 
     // 4. Synchroniser les téléphones du public
     set(ref(db, 'config/current_active_id'), currentPollId);
+
+    const sessionNumEl = document.getElementById('current-session-number');
+    if (sessionNumEl) {
+        sessionNumEl.innerText = newId;
+    }
 };
 
     // 3. GESTION DU CLAVIER (F1)
