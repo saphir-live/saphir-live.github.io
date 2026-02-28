@@ -1967,6 +1967,31 @@
                 set(ref(db, 'config/current_active_id'), currentPollId);
             };
 
+            // FONCTION POUR VIDER LES VOTES DE LA SESSION EN COURS
+window.resetVotes = function() {
+    if (!confirm("⚠️ Saphir, veux-tu vraiment réinitialiser les votes de la Session " + currentPollId + " ?")) return;
+
+    const db = getDatabase();
+
+    // 1. Remettre les compteurs à zéro dans Firebase
+    const votesRef = ref(db, `votes/session_${currentPollId}`);
+    set(votesRef, { m1: 0, m2: 0, m3: 0 });
+
+    // 2. Effacer la liste des gens qui ont déjà voté (pour qu'ils puissent revoter)
+    const checkRef = ref(db, `check_votes/session_${currentPollId}`);
+    set(checkRef, null); // Supprime tout le dossier des IDs pour cette session
+
+    console.log(`♻️ Session ${currentPollId} réinitialisée !`);
+    
+    // 3. Mise à jour visuelle immédiate des barres sur ton écran
+    ['m1', 'm2', 'm3'].forEach(id => {
+        const bar = document.getElementById('bar-' + id);
+        const txt = document.getElementById('txt-' + id);
+        if (bar) bar.style.height = '0%';
+        if (txt) txt.innerText = '0%';
+    });
+};
+
             // 3. GESTION DU CLAVIER (F1)
             window.addEventListener('keydown', (event) => {
                 if (event.key === "F1") {
@@ -1980,6 +2005,9 @@
                 if (event.key === "F2") {
                     event.preventDefault();
                     showVotesReport();
+                }
+                if (event.key === "F4") {
+                    window.resetVotes();
                 }
             });
 
