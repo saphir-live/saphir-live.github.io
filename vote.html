@@ -195,12 +195,11 @@ fetch('https://api.ipify.org?format=json')
     // 4. ACTION DE VOTER
     window.submitVote = async function(choiceId) {
 
-const deviceId = getDeviceId();
     const db = getDatabase();
     
     // 1. Récupérer les votes déjà faits pour l'ID et l'IP
     const idCheck = await get(ref(db, `check_votes/session_${currentPollId}/${deviceId}`));
-    const ipCheck = await get(ref(db, `check_votes/session_${currentPollId}/ip_${userIP}`));
+    const ipCheck = await get(ref(db, `check_votes/session_${currentPollId}/ip_${myID}`));
 
     if (idCheck.exists() || ipCheck.exists()) {
         alert("Saphir a bien reçu ton vote ! Un seul vote par session, merci.");
