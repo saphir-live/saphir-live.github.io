@@ -196,6 +196,16 @@ fetch('https://api.ipify.org?format=json')
     window.submitVote = async function(choiceId) {
 
     const db = getDatabase();
+       
+       function getDeviceID() {
+        let id = localStorage.getItem('saphir_uid');
+        if (!id) {
+            id = 'USR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            localStorage.setItem('saphir_uid', id);
+        }
+        return id;
+    }
+    const myID = getDeviceID();
     
     // 1. Récupérer les votes déjà faits pour l'ID et l'IP
     const idCheck = await get(ref(db, `check_votes/session_${currentPollId}/${deviceId}`));
