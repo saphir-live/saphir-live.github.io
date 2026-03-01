@@ -953,7 +953,9 @@
                     grad.addColorStop(0, `hsla(${currentBgHue}, 100%, 50%, ${bgIntensity})`);
                     grad.addColorStop(1, `transparent`);
                     ctx.fillStyle = grad;
+                    alert('test');
                     window.updateRoomColor(grad);
+                    alert('test2');
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     if (flashWhite > 0) {
                         ctx.fillStyle = `rgba(255, 255, 255, ${flashWhite * 0.4})`;
