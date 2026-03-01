@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELENA VOSS // SYSTEM</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@1,300;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --red: #FF0030;
+  --red-dim: #8B0020;
+  --red-glow: rgba(255,0,48,0.6);
+  --red-trace: rgba(255,0,48,0.15);
+  --neon: #FF1744;
+  --dark: #000000;
+  --dark2: #060606;
+  --dark3: #0a0a0a;
+  --panel: rgba(10,0,5,0.9);
+  --grid: rgba(255,0,48,0.07);
+  --border: rgba(255,0,48,0.25);
+  --border-bright: rgba(255,0,48,0.6);
+  --text: #F0E8E8;
+  --text-dim: rgba(240,232,232,0.45);
+  --text-code: #FF6680;
+  --gold: #FFB300;
+  --scan: rgba(255,0,48,0.03);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 400;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ══ SCANLINES ══ */
+body::before {
+  content:'';
+  position:fixed;inset:0;z-index:9990;
+  pointer-events:none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+}
+
+/* ══ GRID BG ══ */
+body::after {
+  content:'';
+  position:fixed;inset:0;z-index:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+}
+
+/* ══ CURSOR ══ */
+.c-dot {
+  width:6px;height:6px;
+  background:var(--red);
+  position:fixed;top:0;left:0;
+  pointer-events:none;z-index:99999;
+  border-radius:50%;
+  box-shadow: 0 0 10px var(--red), 0 0 20px var(--red-glow);
+  transition: transform 0.05s;
+}
+.c-cross {
+  position:fixed;top:0;left:0;
+  pointer-events:none;z-index:99998;
+  width:24px;height:24px;
+  transition: transform 0.12s ease;
+}
+.c-cross::before, .c-cross::after {
+  content:'';position:absolute;background:var(--red);opacity:0.7;
+}
+.c-cross::before{width:1px;height:24px;left:11px;top:0;}
+.c-cross::after{width:24px;height:1px;top:11px;left:0;}
+
+/* ══ GLITCH TEXT ══ */
+@keyframes glitch1 {
+  0%,94%{clip-path:inset(0 0 100% 0);}
+  95%{clip-path:inset(20% 0 60% 0);transform:translateX(-4px);}
+  96%{clip-path:inset(50% 0 30% 0);transform:translateX(4px);}
+  97%{clip-path:inset(80% 0 5% 0);transform:translateX(-2px);}
+  100%{clip-path:inset(0 0 100% 0);transform:translateX(0);}
+}
+@keyframes glitch2 {
+  0%,96%{clip-path:inset(0 0 100% 0);}
+  97%{clip-path:inset(10% 0 70% 0);transform:translateX(5px);}
+  98%{clip-path:inset(60% 0 20% 0);transform:translateX(-5px);}
+  100%{clip-path:inset(0 0 100% 0);transform:translateX(0);}
+}
+.glitch-wrap {position:relative;display:inline-block;}
+.glitch-wrap::before,.glitch-wrap::after {
+  content:attr(data-text);
+  position:absolute;inset:0;
+  color:var(--red);
+}
+.glitch-wrap::before{
+  animation:glitch1 6s infinite;
+  text-shadow:-2px 0 #00FFFF;
+  opacity:0.8;
+}
+.glitch-wrap::after{
+  animation:glitch2 6s infinite 0.5s;
+  text-shadow:2px 0 var(--red);
+  opacity:0.6;
+}
+
+/* ══ HUD SCAN LINE ══ */
+@keyframes scanDown {
+  0%{top:-5%;}100%{top:105%;}
+}
+.scan-line {
+  position:fixed;left:0;right:0;height:2px;z-index:9989;
+  pointer-events:none;
+  background:linear-gradient(90deg, transparent, var(--scan), rgba(255,0,48,0.15), var(--scan), transparent);
+  animation: scanDown 8s linear infinite;
+  box-shadow: 0 0 20px rgba(255,0,48,0.1);
+}
+
+/* ══ CORNER HUD ELEMENTS ══ */
+.hud-corner {
+  position:fixed;width:80px;height:80px;z-index:9985;
+  pointer-events:none;
+}
+.hud-corner.tl{top:20px;left:20px;border-top:1px solid var(--border-bright);border-left:1px solid var(--border-bright);}
+.hud-corner.tr{top:20px;right:20px;border-top:1px solid var(--border-bright);border-right:1px solid var(--border-bright);}
+.hud-corner.bl{bottom:20px;left:20px;border-bottom:1px solid var(--border-bright);border-left:1px solid var(--border-bright);}
+.hud-corner.br{bottom:20px;right:20px;border-bottom:1px solid var(--border-bright);border-right:1px solid var(--border-bright);}
+.hud-corner::before {
+  content:'';position:absolute;
+  width:8px;height:8px;background:var(--red);border-radius:50%;
+  box-shadow: 0 0 8px var(--red);
+}
+.hud-corner.tl::before{top:-4px;left:-4px;}
+.hud-corner.tr::before{top:-4px;right:-4px;}
+.hud-corner.bl::before{bottom:-4px;left:-4px;}
+.hud-corner.br::before{bottom:-4px;right:-4px;}
+
+/* ══ STATUS BAR ══ */
+.status-bar {
+  position:fixed;bottom:0;left:0;right:0;z-index:9980;
+  height:28px;
+  background: rgba(0,0,0,0.95);
+  border-top: 1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 2rem;gap:3rem;
+  font-family:'Share Tech Mono', monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  letter-spacing:0.1em;
+}
+.status-item {display:flex;align-items:center;gap:0.5rem;}
+.status-dot {width:5px;height:5px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.status-online{color:var(--red);}
+
+/* ══ NAV ══ */
+nav {
+  position:fixed;top:0;width:100%;z-index:1000;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 3rem;height:64px;
+  background: rgba(0,0,0,0.9);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(10px);
+}
+.nav-id {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--text-dim);
+  letter-spacing:0.2em;
+}
+.nav-logo {
+  font-family:'Orbitron',sans-serif;
+  font-size:1rem;font-weight:700;
+  letter-spacing:0.3em;color:var(--text);
+  position:relative;
+}
+.nav-logo::before {
+  content:'// ';color:var(--red);font-size:0.9rem;
+}
+.nav-links {
+  display:flex;gap:2.5rem;list-style:none;
+}
+.nav-links a {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.2em;
+  color:var(--text-dim);text-decoration:none;
+  transition:all 0.2s;position:relative;
+  text-transform:uppercase;
+}
+.nav-links a::before{
+  content:'> ';color:var(--red);opacity:0;
+  transition:opacity 0.2s;
+}
+.nav-links a:hover{color:var(--text);}
+.nav-links a:hover::before{opacity:1;}
+
+/* ══ HERO ══ */
+#hero {
+  min-height:100vh;
+  display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;
+  padding:80px 3rem 40px;
+  position:relative;overflow:hidden;
+}
+
+/* Animated red particles */
+.particle-field {
+  position:absolute;inset:0;z-index:0;overflow:hidden;
+}
+.particle {
+  position:absolute;
+  width:1px;height:1px;
+  background:var(--red);
+  border-radius:50%;
+  box-shadow:0 0 4px var(--red);
+}
+
+@keyframes floatParticle {
+  0%{transform:translateY(100vh) translateX(0);opacity:0;}
+  10%{opacity:1;}
+  90%{opacity:0.5;}
+  100%{transform:translateY(-100px) translateX(var(--drift));opacity:0;}
+}
+
+.hero-left {
+  position:relative;z-index:2;
+  padding-right:4rem;
+}
+
+.sys-tag {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--red);
+  letter-spacing:0.3em;margin-bottom:1.5rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.sys-tag::before{
+  content:'';display:block;
+  width:20px;height:1px;background:var(--red);
+  box-shadow:0 0 8px var(--red);
+}
+.blink {animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+h1 {
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(2.5rem, 5vw, 5.5rem);
+  font-weight:900;
+  line-height:1;
+  letter-spacing:0.05em;
+  margin-bottom:0.3rem;
+  text-shadow: 0 0 40px rgba(255,0,48,0.3);
+}
+h1 .last {
+  display:block;
+  color:var(--red);
+  font-size:clamp(2.8rem,6vw,6rem);
+  text-shadow: 0 0 30px var(--red-glow), 0 0 60px rgba(255,0,48,0.2);
+}
+
+.hero-sub {
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:1.1rem;
+  color:var(--text-dim);
+  margin:1.5rem 0 2.5rem;
+  line-height:1.7;
+  border-left:2px solid var(--red-dim);
+  padding-left:1rem;
+}
+
+.hero-data {
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;margin-bottom:3rem;
+  border:1px solid var(--border);
+}
+.hd-item {
+  padding:0.75rem 1rem;
+  background:rgba(255,0,48,0.04);
+  border-right:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.hd-item:last-child{border-right:none;}
+.hd-item::after {
+  content:'';position:absolute;bottom:0;left:0;right:0;
+  height:1px;background:linear-gradient(90deg,transparent,var(--red),transparent);
+  transform:scaleX(0);transition:transform 0.5s;
+}
+.hd-item:hover::after{transform:scaleX(1);}
+.hd-val {
+  font-family:'Orbitron',sans-serif;
+  font-size:1.3rem;font-weight:700;
+  color:var(--red);
+}
+.hd-key {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:0.2em;
+  margin-top:0.1rem;
+}
+
+.hero-btns {display:flex;gap:1rem;}
+.btn-primary {
+  font-family:'Orbitron',sans-serif;
+  font-size:0.65rem;font-weight:700;
+  letter-spacing:0.25em;text-transform:uppercase;
+  padding:0.9rem 2rem;
+  background:transparent;
+  border:1px solid var(--red);
+  color:var(--text);
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:all 0.3s;clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  text-decoration:none;
+  display:inline-flex;align-items:center;gap:0.75rem;
+}
+.btn-primary::before {
+  content:'';position:absolute;inset:0;
+  background:var(--red);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform 0.3s;
+}
+.btn-primary:hover::before{transform:scaleX(1);}
+.btn-primary span{position:relative;z-index:1;}
+
+.btn-ghost {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.2em;
+  text-transform:uppercase;
+  padding:0.9rem 2rem;
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  cursor:pointer;transition:all 0.3s;
+  text-decoration:none;display:inline-flex;align-items:center;
+}
+.btn-ghost:hover{border-color:var(--red);color:var(--text);}
+
+/* ══ HERO RIGHT - Holographic portrait ══ */
+.hero-right {
+  position:relative;z-index:2;
+  display:flex;justify-content:center;align-items:center;
+}
+.holo-frame {
+  position:relative;width:380px;height:520px;
+}
+
+/* Rotating hex grid bg */
+@keyframes rotateGrid {
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+.holo-bg {
+  position:absolute;inset:-40px;
+  background:conic-gradient(from 0deg, transparent 70%, rgba(255,0,48,0.05) 75%, transparent 80%);
+  animation:rotateGrid 20s linear infinite;
+  border-radius:50%;
+}
+
+.holo-portrait {
+  width:100%;height:100%;
+  position:relative;overflow:hidden;
+  border:1px solid var(--border);
+  background:linear-gradient(160deg, #0d0005 0%, #050000 60%, #080010 100%);
+  clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+
+/* Holographic glitch scan */
+@keyframes holoScan {
+  0%{top:-10%;opacity:0.8;}
+  100%{top:110%;opacity:0;}
+}
+.holo-scan {
+  position:absolute;left:0;right:0;height:40px;z-index:3;
+  background:linear-gradient(to bottom, transparent, rgba(255,0,48,0.12), transparent);
+  animation:holoScan 4s ease-in infinite;
+  pointer-events:none;
+}
+
+/* RGB shift lines */
+.holo-portrait::after {
+  content:'';position:absolute;inset:0;z-index:2;
+  background:repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(255,0,48,0.02) 3px, rgba(255,0,48,0.02) 4px
+  );
+  pointer-events:none;
+}
+
+.holo-corners {position:absolute;inset:0;z-index:4;pointer-events:none;}
+.hc {position:absolute;width:24px;height:24px;}
+.hc.tl{top:0;left:0;border-top:2px solid var(--red);border-left:2px solid var(--red);}
+.hc.tr{top:0;right:0;border-top:2px solid var(--red);border-right:2px solid var(--red);}
+.hc.bl{bottom:0;left:0;border-bottom:2px solid var(--red);border-left:2px solid var(--red);}
+.hc.br{bottom:0;right:0;border-bottom:2px solid var(--red);border-right:2px solid var(--red);}
+
+.holo-data-tag {
+  position:absolute;z-index:5;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--red);
+  letter-spacing:0.1em;padding:0.3rem 0.6rem;
+  border:1px solid var(--border);
+  background:rgba(0,0,0,0.8);
+}
+.holo-data-tag.top-left{top:12px;left:12px;}
+.holo-data-tag.top-right{top:12px;right:12px;text-align:right;}
+.holo-data-tag.bottom-left{bottom:12px;left:12px;}
+.holo-data-tag.bottom-right{bottom:12px;right:12px;}
+
+/* Floating side bars */
+.holo-sidebar {
+  position:absolute;top:10%;bottom:10%;
+  width:3px;background:linear-gradient(to bottom, transparent, var(--red-dim), transparent);
+}
+.holo-sidebar.left{left:-16px;}
+.holo-sidebar.right{right:-16px;}
+.holo-sidebar::before {
+  content:'';position:absolute;
+  width:7px;height:7px;background:var(--red);border-radius:50%;
+  box-shadow:0 0 8px var(--red);
+  left:-2px;
+  animation:slidePip 4s ease-in-out infinite;
+}
+@keyframes slidePip {
+  0%,100%{top:0;}
+  50%{top:calc(100% - 7px);}
+}
+
+/* ══ SECTION COMMONS ══ */
+section {position:relative;padding:6rem 3rem;z-index:1;}
+.s-header {
+  display:flex;align-items:flex-start;
+  gap:2rem;margin-bottom:4rem;
+}
+.s-number {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--red);
+  padding:0.4rem 0.8rem;
+  border:1px solid var(--border);
+  background:rgba(255,0,48,0.05);
+  letter-spacing:0.1em;
+  margin-top:0.5rem;white-space:nowrap;
+}
+.s-title-wrap{}
+.s-tag {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  letter-spacing:0.3em;text-transform:uppercase;
+  margin-bottom:0.75rem;
+}
+h2 {
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(1.5rem,3vw,2.5rem);
+  font-weight:700;letter-spacing:0.05em;
+  line-height:1.1;
+}
+.red{color:var(--red);}
+
+/* ══ SECTION DIVIDER ══ */
+.section-divider {
+  height:1px;background:linear-gradient(90deg,transparent,var(--border-bright),transparent);
+  margin:0 3rem;position:relative;
+}
+.section-divider::before {
+  content:'◆';
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  color:var(--red);font-size:0.7rem;
+  background:var(--dark);padding:0 0.5rem;
+}
+
+/* ══ ABOUT ══ */
+#about {background:var(--dark2);}
+#about .inner {
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1.5fr;gap:5rem;
+  align-items:start;
+}
+.bio-panel {
+  border:1px solid var(--border);
+  background:var(--panel);
+  padding:2rem;
+  clip-path:polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  position:relative;
+}
+.bio-panel::before {
+  content:'DOSSIER // ARTIST_PROFILE';
+  position:absolute;top:-12px;left:1.5rem;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--red);
+  background:var(--dark2);padding:0 0.5rem;
+  letter-spacing:0.15em;
+}
+.bio-panel p {
+  font-size:0.95rem;line-height:1.9;
+  color:rgba(240,232,232,0.7);
+  margin-bottom:1rem;
+}
+.bio-panel p strong{color:var(--text);font-weight:600;}
+.bio-panel p:last-child{margin-bottom:0;}
+
+.awards-panel {margin-top:1.5rem;}
+.award-row {
+  display:flex;align-items:center;gap:1rem;
+  padding:0.75rem 0;
+  border-bottom:1px solid rgba(255,0,48,0.1);
+  transition:all 0.3s;
+}
+.award-row:last-child{border-bottom:none;}
+.award-row:hover{padding-left:0.5rem;}
+.award-num {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--red);
+  min-width:30px;
+}
+.award-name {font-size:0.9rem;font-weight:600;}
+.award-year {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--text-dim);
+  margin-left:auto;
+}
+
+.stat-grid {
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  border:1px solid var(--border);margin-top:2rem;
+  background:var(--border);
+}
+.stat-cell {
+  background:var(--dark2);
+  padding:1.5rem;
+  position:relative;overflow:hidden;
+  transition:background 0.3s;
+}
+.stat-cell:hover{background:rgba(255,0,48,0.05);}
+.stat-cell::before {
+  content:'';position:absolute;
+  top:0;left:0;width:3px;height:0;
+  background:var(--red);
+  transition:height 0.4s;
+}
+.stat-cell:hover::before{height:100%;}
+.stat-val {
+  font-family:'Orbitron',sans-serif;
+  font-size:2rem;font-weight:900;
+  color:var(--red);
+  text-shadow:0 0 20px rgba(255,0,48,0.5);
+}
+.stat-lbl {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:0.2em;
+  margin-top:0.25rem;
+}
+
+/* ══ MEDIA ══ */
+#media {background:var(--dark);}
+#media .inner{max-width:1400px;margin:0 auto;}
+
+.media-tabs {
+  display:flex;gap:0;margin-bottom:2rem;
+  border:1px solid var(--border);
+  width:fit-content;
+}
+.mtab {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;letter-spacing:0.2em;
+  text-transform:uppercase;
+  padding:0.6rem 1.5rem;
+  background:transparent;
+  border:none;border-right:1px solid var(--border);
+  color:var(--text-dim);cursor:pointer;
+  transition:all 0.2s;
+}
+.mtab:last-child{border-right:none;}
+.mtab.active{background:rgba(255,0,48,0.1);color:var(--red);}
+.mtab:hover:not(.active){color:var(--text);}
+
+.carousel-wrap{overflow:hidden;position:relative;}
+.carousel-track {
+  display:flex;gap:2px;
+  transition:transform 0.5s cubic-bezier(0.23,1,0.32,1);
+}
+.c-slide {
+  flex:0 0 340px;height:460px;
+  position:relative;overflow:hidden;
+  border:1px solid var(--border);
+  background:var(--dark3);
+  cursor:pointer;
+  transition:border-color 0.3s;
+}
+.c-slide:hover{border-color:var(--red);}
+
+.c-slide-inner {
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.c-slide-bg {
+  position:absolute;inset:0;
+  transition:transform 0.6s ease;
+}
+.c-slide:hover .c-slide-bg{transform:scale(1.06);}
+
+/* HUD overlay on slides */
+.c-slide-hud {
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:1.25rem;
+}
+.c-slide-num {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--red);
+  letter-spacing:0.2em;margin-bottom:0.5rem;
+}
+.c-slide-title {
+  font-family:'Rajdhani',sans-serif;
+  font-size:1rem;font-weight:600;
+  line-height:1.3;
+}
+.c-slide-sub {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  margin-top:0.3rem;
+}
+.c-slide-corner {
+  position:absolute;top:0;right:0;
+  width:0;height:0;
+  border-style:solid;
+  border-width:0 30px 30px 0;
+  border-color:transparent var(--red) transparent transparent;
+  z-index:3;
+}
+
+/* Play button */
+.play-overlay {
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:3;
+  width:56px;height:56px;
+  border:1px solid rgba(255,255,255,0.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;color:white;
+  transition:all 0.3s;
+  clip-path:polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  background:rgba(255,0,48,0.2);
+}
+.play-overlay:hover,.c-slide:hover .play-overlay {
+  background:var(--red);border-color:var(--red);
+  box-shadow:0 0 20px var(--red-glow);
+}
+
+.carousel-controls {
+  display:flex;align-items:center;gap:1.5rem;
+  margin-top:1.5rem;
+}
+.cc-btn {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.7rem;color:var(--text-dim);
+  background:transparent;
+  border:1px solid var(--border);
+  padding:0.5rem 1rem;cursor:pointer;
+  transition:all 0.2s;
+}
+.cc-btn:hover{border-color:var(--red);color:var(--red);}
+.cc-dots{display:flex;gap:4px;}
+.cc-dot {
+  width:20px;height:2px;background:var(--border);
+  cursor:pointer;transition:all 0.3s;
+}
+.cc-dot.active{background:var(--red);box-shadow:0 0 6px var(--red);}
+.cc-count {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  margin-left:auto;
+}
+
+/* ══ CONCERTS ══ */
+#concerts{background:var(--dark2);}
+#concerts .inner{max-width:1200px;margin:0 auto;}
+
+.concert-grid{display:flex;flex-direction:column;gap:2px;}
+.concert-row {
+  display:grid;
+  grid-template-columns:90px 1fr 1fr auto;
+  align-items:center;gap:0;
+  background:rgba(255,0,48,0.03);
+  border:1px solid var(--border);
+  position:relative;overflow:hidden;
+  transition:all 0.3s;
+}
+.concert-row::before {
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:0;background:rgba(255,0,48,0.05);
+  transition:width 0.4s;
+}
+.concert-row:hover{border-color:var(--red);z-index:1;}
+.concert-row:hover::before{width:100%;}
+
+.c-date-block {
+  padding:1.25rem 1.5rem;
+  border-right:1px solid var(--border);
+  text-align:center;position:relative;z-index:1;
+}
+.c-day {
+  font-family:'Orbitron',sans-serif;
+  font-size:1.8rem;font-weight:900;
+  color:var(--red);line-height:1;
+  text-shadow:0 0 15px rgba(255,0,48,0.5);
+}
+.c-month {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:0.2em;
+}
+
+.c-info {
+  padding:1.25rem 2rem;
+  border-right:1px solid var(--border);
+  position:relative;z-index:1;
+}
+.c-title {
+  font-family:'Rajdhani',sans-serif;
+  font-size:1.1rem;font-weight:600;
+  margin-bottom:0.4rem;
+}
+.c-venue {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  letter-spacing:0.1em;
+}
+
+.c-program {
+  padding:1.25rem 2rem;
+  border-right:1px solid var(--border);
+  position:relative;z-index:1;
+}
+.c-prog-label {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--red);
+  text-transform:uppercase;letter-spacing:0.2em;
+  margin-bottom:0.4rem;
+}
+.c-prog-text {
+  font-size:0.85rem;color:var(--text-dim);
+  line-height:1.5;
+}
+
+.c-action {
+  padding:1.25rem 2rem;
+  text-align:right;position:relative;z-index:1;
+  min-width:160px;
+}
+.c-price {
+  font-family:'Orbitron',sans-serif;
+  font-size:0.9rem;font-weight:700;
+  color:var(--gold);margin-bottom:0.75rem;
+}
+.c-price span{font-size:0.6rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+.btn-book {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;letter-spacing:0.15em;
+  text-transform:uppercase;
+  padding:0.5rem 1rem;
+  background:transparent;
+  border:1px solid var(--red);
+  color:var(--text);cursor:pointer;
+  transition:all 0.2s;
+  clip-path:polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  position:relative;overflow:hidden;
+  width:100%;
+}
+.btn-book::before {
+  content:'';position:absolute;inset:0;
+  background:var(--red);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform 0.25s;
+}
+.btn-book:hover::before{transform:scaleX(1);}
+.btn-book span{position:relative;z-index:1;}
+.badge-full {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  border:1px solid var(--border);padding:0.4rem 0.8rem;
+  display:inline-block;letter-spacing:0.15em;width:100%;text-align:center;
+}
+
+/* ══ VIDEO MODAL ══ */
+.v-modal {
+  display:none;position:fixed;inset:0;z-index:9900;
+  background:rgba(0,0,0,0.97);
+  align-items:center;justify-content:center;
+}
+.v-modal.open{display:flex;}
+.v-modal-box {
+  width:90vw;max-width:860px;
+  background:var(--dark2);
+  border:1px solid var(--border);
+  position:relative;
+  clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+}
+.v-modal-header {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:1rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--red);letter-spacing:0.15em;
+}
+.v-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:1rem;transition:color 0.2s;}
+.v-close:hover{color:var(--red);}
+.v-screen {
+  aspect-ratio:16/9;background:#000;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.v-screen-content {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.8rem;color:var(--red);
+  text-align:center;letter-spacing:0.15em;
+}
+.v-screen-content::before{
+  content:'▶ ';
+}
+.v-modal-footer {
+  padding:0.75rem 1.5rem;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;
+}
+
+/* ══ TICKET MODAL ══ */
+.t-modal {
+  display:none;position:fixed;inset:0;z-index:9900;
+  background:rgba(0,0,0,0.97);
+  align-items:center;justify-content:center;
+  padding:2rem;
+}
+.t-modal.open{display:flex;}
+.t-modal-box {
+  width:100%;max-width:540px;
+  background:var(--dark2);
+  border:1px solid var(--border);
+  position:relative;
+}
+.t-modal-head {
+  padding:1.5rem;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,0,48,0.05);
+  position:relative;
+}
+.t-modal-head::before {
+  content:'BILLETTERIE // SECURE_BOOKING';
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--red);
+  letter-spacing:0.2em;display:block;margin-bottom:0.5rem;
+}
+.t-modal-head h3 {
+  font-family:'Orbitron',sans-serif;
+  font-size:0.9rem;font-weight:700;letter-spacing:0.1em;
+}
+.t-modal-head p {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);margin-top:0.3rem;
+}
+.t-close {
+  position:absolute;top:1rem;right:1rem;
+  background:none;border:1px solid var(--border);
+  color:var(--text-dim);cursor:pointer;
+  width:28px;height:28px;font-size:0.8rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.t-close:hover{border-color:var(--red);color:var(--red);}
+.t-body{padding:1.5rem;}
+
+.f-group{margin-bottom:1.25rem;}
+.f-label {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  letter-spacing:0.2em;text-transform:uppercase;
+  display:block;margin-bottom:0.4rem;
+}
+.f-label span{color:var(--red);}
+.f-input, .f-select {
+  width:100%;background:#050505;
+  border:1px solid var(--border);
+  color:var(--text);padding:0.7rem 1rem;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.8rem;outline:none;
+  transition:border-color 0.2s;
+  appearance:none;
+}
+.f-input:focus, .f-select:focus{border-color:var(--red);box-shadow:0 0 10px rgba(255,0,48,0.1);}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+
+.cat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-top:0.5rem;}
+.cat-opt {
+  border:1px solid var(--border);padding:0.85rem;
+  cursor:pointer;transition:all 0.25s;text-align:center;
+  background:transparent;position:relative;overflow:hidden;
+}
+.cat-opt.sel{border-color:var(--red);background:rgba(255,0,48,0.1);}
+.cat-opt:not(.sel):hover{border-color:rgba(255,0,48,0.4);}
+.cat-opt::after{
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:2px;background:var(--red);
+  transform:scaleX(0);transition:transform 0.3s;
+}
+.cat-opt.sel::after{transform:scaleX(1);}
+.cat-name {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--text-dim);
+  letter-spacing:0.15em;text-transform:uppercase;
+}
+.cat-price {
+  font-family:'Orbitron',sans-serif;
+  font-size:1rem;font-weight:700;
+  color:var(--gold);margin-top:0.2rem;
+}
+
+.total-row {
+  display:flex;justify-content:space-between;align-items:center;
+  padding:1rem 0;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  margin:1.25rem 0;
+}
+.total-lbl {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--text-dim);
+  letter-spacing:0.2em;text-transform:uppercase;
+}
+.total-val {
+  font-family:'Orbitron',sans-serif;
+  font-size:1.3rem;font-weight:900;
+  color:var(--gold);
+  text-shadow:0 0 15px rgba(255,179,0,0.4);
+}
+
+.btn-gen {
+  width:100%;background:var(--red);
+  border:none;color:white;cursor:pointer;
+  font-family:'Orbitron',sans-serif;
+  font-size:0.7rem;font-weight:700;
+  letter-spacing:0.2em;text-transform:uppercase;
+  padding:0.9rem;
+  transition:all 0.3s;
+  clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  display:flex;align-items:center;justify-content:center;gap:0.75rem;
+  position:relative;overflow:hidden;
+}
+.btn-gen::before {
+  content:'';position:absolute;inset:0;
+  background:rgba(255,255,255,0.1);
+  transform:translateX(-100%);
+  transition:transform 0.4s;
+}
+.btn-gen:hover::before{transform:translateX(100%);}
+.btn-gen:hover{box-shadow:0 0 25px rgba(255,0,48,0.5);}
+
+/* ══ FOOTER ══ */
+footer {
+  background:var(--dark);
+  border-top:1px solid var(--border);
+  padding:4rem 3rem 5rem;
+  position:relative;z-index:1;
+}
+.footer-grid {
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4rem;
+}
+.f-brand {
+  font-family:'Orbitron',sans-serif;
+  font-size:0.9rem;font-weight:700;
+  letter-spacing:0.3em;margin-bottom:1rem;
+}
+.f-brand::before{content:'// ';color:var(--red);}
+.f-desc {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--text-dim);
+  line-height:1.8;max-width:280px;
+}
+.f-section h4 {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--red);
+  letter-spacing:0.3em;text-transform:uppercase;
+  margin-bottom:1rem;
+}
+.f-section ul{list-style:none;}
+.f-section ul li {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.65rem;color:var(--text-dim);
+  padding:0.3rem 0;
+}
+.f-section ul li a{
+  color:var(--text-dim);text-decoration:none;transition:color 0.2s;
+}
+.f-section ul li a::before{content:'> ';opacity:0;transition:opacity 0.2s;}
+.f-section ul li a:hover{color:var(--text);}
+.f-section ul li a:hover::before{opacity:1;}
+
+.footer-bottom {
+  max-width:1200px;margin:3rem auto 0;
+  padding-top:1.5rem;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.55rem;color:var(--text-dim);letter-spacing:0.15em;
+}
+.f-sig{color:var(--red);}
+
+/* ══ TOAST ══ */
+.toast {
+  position:fixed;bottom:3rem;right:2rem;z-index:99999;
+  background:var(--dark2);
+  border:1px solid var(--red);
+  border-left:3px solid var(--red);
+  padding:1rem 1.5rem;
+  transform:translateX(120%);
+  transition:transform 0.4s cubic-bezier(0.23,1,0.32,1);
+  min-width:280px;
+  clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.toast.show{transform:translateX(0);}
+.toast-head {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.6rem;color:var(--red);
+  letter-spacing:0.2em;margin-bottom:0.3rem;
+}
+.toast-msg{font-size:0.85rem;color:var(--text);}
+
+/* ══ LOADING ══ */
+@keyframes countup {
+  from{content:'000';}
+  to{content:'100';}
+}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:900px){
+  nav{padding:0 1.5rem;}
+  .nav-links,.nav-id{display:none;}
+  #hero{grid-template-columns:1fr;padding:80px 1.5rem 3rem;}
+  .hero-right{display:none;}
+  .hero-data{grid-template-columns:repeat(3,1fr);}
+  section{padding:4rem 1.5rem;}
+  #about .inner{grid-template-columns:1fr;gap:2rem;}
+  .concert-row{grid-template-columns:70px 1fr;grid-template-rows:auto auto;}
+  .c-program,.c-action{display:none;}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:2rem;}
+  footer{padding:3rem 1.5rem 4rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- HUD Elements -->
+<div class="scan-line"></div>
+<div class="hud-corner tl"></div>
+<div class="hud-corner tr"></div>
+<div class="hud-corner bl"></div>
+<div class="hud-corner br"></div>
+<div class="c-dot" id="cDot"></div>
+<div class="c-cross" id="cCross"></div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <div class="status-item"><div class="status-dot"></div><span class="status-online">SYSTÈME EN LIGNE</span></div>
+  <div class="status-item">SESSION // <span id="sessionId">EV-2025-ACTIVE</span></div>
+  <div class="status-item">SAISON // <span>2025.EUROPE.TOUR</span></div>
+  <div class="status-item" style="margin-left:auto;" id="liveClock">00:00:00</div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-id">SYS_ID: EV.PIANIST.V3.2</div>
+  <div class="nav-logo glitch-wrap" data-text="ELENA VOSS">ELENA VOSS</div>
+  <ul class="nav-links">
+    <li><a href="#about">Profil</a></li>
+    <li><a href="#media">Archives</a></li>
+    <li><a href="#concerts">Agenda</a></li>
+    <li><a href="#concerts">Billets</a></li>
+    <li><a href="mailto:contact@elenavoss.com">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- Particle Field -->
+<div class="particle-field" id="particleField"></div>
+
+<!-- ══ HERO ══ -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="sys-tag">[ ARTISTE_ID: 00·47 ] <span class="blink">█</span></div>
+
+    <h1>
+      ELENA
+      <span class="last glitch-wrap" data-text="VOSS">VOSS</span>
+    </h1>
+
+    <p class="hero-sub">
+      « La musique n'est pas ce que vous entendez —<br>
+      c'est ce que vous ressentez entre les notes. »
+    </p>
+
+    <div class="hero-data">
+      <div class="hd-item">
+        <div class="hd-val">28</div>
+        <div class="hd-key">ans de scène</div>
+      </div>
+      <div class="hd-item">
+        <div class="hd-val">47</div>
+        <div class="hd-key">pays</div>
+      </div>
+      <div class="hd-item">
+        <div class="hd-val">12</div>
+        <div class="hd-key">albums</div>
+      </div>
+    </div>
+
+    <div class="hero-btns">
+      <a href="#about" class="btn-primary">
+        <span>◆</span><span>Accéder au profil</span>
+      </a>
+      <a href="#concerts" class="btn-ghost">[ Voir l'agenda ]</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="holo-frame">
+      <div class="holo-bg"></div>
+      <div class="holo-sidebar left"></div>
+      <div class="holo-sidebar right"></div>
+      <div class="holo-portrait">
+        <div class="holo-scan"></div>
+        <div class="holo-corners">
+          <div class="hc tl"></div><div class="hc tr"></div>
+          <div class="hc bl"></div><div class="hc br"></div>
+        </div>
+        <div class="holo-data-tag top-left">EV // PIANIST</div>
+        <div class="holo-data-tag top-right">ID:00·47</div>
+        <div class="holo-data-tag bottom-left">PRAGUE — PARIS</div>
+        <div class="holo-data-tag bottom-right">STATUS: ACTIVE</div>
+        <!-- SVG Portrait -->
+        <svg viewBox="0 0 380 520" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="position:absolute;inset:0;">
+          <defs>
+            <radialGradient id="bg3" cx="50%" cy="35%">
+              <stop offset="0%" style="stop-color:#200510"/>
+              <stop offset="100%" style="stop-color:#020002"/>
+            </radialGradient>
+            <linearGradient id="dress3" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#150510"/>
+              <stop offset="100%" style="stop-color:#050005"/>
+            </linearGradient>
+            <filter id="glow3">
+              <feGaussianBlur stdDeviation="2" result="cb"/>
+              <feMerge><feMergeNode in="cb"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <linearGradient id="keyGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#f0e8e8"/>
+              <stop offset="100%" style="stop-color:#c8b8b8"/>
+            </linearGradient>
+          </defs>
+          <rect width="380" height="520" fill="url(#bg3)"/>
+          <!-- Grid lines -->
+          <g stroke="rgba(255,0,48,0.07)" stroke-width="0.5">
+            <line x1="0" y1="100" x2="380" y2="100"/>
+            <line x1="0" y1="200" x2="380" y2="200"/>
+            <line x1="0" y1="300" x2="380" y2="300"/>
+            <line x1="0" y1="400" x2="380" y2="400"/>
+            <line x1="80" y1="0" x2="80" y2="520"/>
+            <line x1="160" y1="0" x2="160" y2="520"/>
+            <line x1="240" y1="0" x2="240" y2="520"/>
+            <line x1="320" y1="0" x2="320" y2="520"/>
+          </g>
+          <!-- Dress/body  -->
+          <path d="M135,240 C118,272 98,340 88,420 C83,455 80,490 82,518 L298,518 C300,490 297,455 292,420 C282,340 262,272 245,240 Z" fill="url(#dress3)"/>
+          <path d="M140,245 C128,278 110,345 102,425 C98,458 96,490 98,518 L282,518 C284,490 282,458 278,425 C270,345 252,278 240,245 Z" fill="#1a0510"/>
+          <!-- Torso -->
+          <path d="M145,195 C140,215 138,232 135,245 L245,245 C242,232 240,215 235,195 Z" fill="#180308"/>
+          <!-- Neck -->
+          <rect x="183" y="163" width="24" height="36" rx="10" fill="#7a5048"/>
+          <!-- Head -->
+          <ellipse cx="195" cy="140" rx="50" ry="58" fill="#7a5048"/>
+          <!-- Hair -->
+          <path d="M145,118 C143,88 148,60 166,50 C184,40 206,38 222,44 C238,50 244,68 244,88 C244,105 240,118 234,128 L145,118 Z" fill="#0d0208"/>
+          <ellipse cx="195" cy="72" rx="42" ry="28" fill="#0d0208"/>
+          <path d="M168,50 C178,38 198,35 212,42 C226,49 230,62 228,75 C226,86 220,94 210,100 C200,106 182,107 173,100 C163,93 162,80 164,67 Z" fill="#150408"/>
+          <circle cx="220" cy="62" r="16" fill="#100306"/>
+          <!-- Eyes -->
+          <ellipse cx="182" cy="138" rx="7" ry="4.5" fill="#120208"/>
+          <ellipse cx="208" cy="138" rx="7" ry="4.5" fill="#120208"/>
+          <circle cx="182" cy="138" r="2.5" fill="#030000"/>
+          <circle cx="208" cy="138" r="2.5" fill="#030000"/>
+          <circle cx="183" cy="137" r="1" fill="white" opacity="0.8"/>
+          <circle cx="209" cy="137" r="1" fill="white" opacity="0.8"/>
+          <!-- Eyebrows -->
+          <path d="M174,131 Q182,127 190,131" stroke="#0d0208" stroke-width="1.8" fill="none"/>
+          <path d="M200,131 Q208,127 216,131" stroke="#0d0208" stroke-width="1.8" fill="none"/>
+          <!-- Lips -->
+          <path d="M184,162 Q195,158 206,162 Q202,170 195,171 Q188,170 184,162 Z" fill="#8B0020"/>
+          <!-- Necklace -->
+          <path d="M170,185 Q195,198 220,185" stroke="rgba(255,0,48,0.8)" stroke-width="1" fill="none" filter="url(#glow3)"/>
+          <circle cx="195" cy="194" r="3" fill="#FF0030" filter="url(#glow3)"/>
+          <!-- Arms -->
+          <path d="M135,245 C118,258 98,280 78,306 C63,326 58,340 60,354" stroke="#6a4038" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <path d="M245,245 C262,258 282,280 302,306 C317,326 322,340 320,354" stroke="#6a4038" stroke-width="18" fill="none" stroke-linecap="round"/>
+          <!-- Hands -->
+          <ellipse cx="58" cy="362" rx="16" ry="10" fill="#6a4038" transform="rotate(-20 58 362)"/>
+          <ellipse cx="322" cy="362" rx="16" ry="10" fill="#6a4038" transform="rotate(20 322 362)"/>
+          <!-- Piano -->
+          <rect x="18" y="365" width="344" height="118" rx="2" fill="#050005"/>
+          <rect x="22" y="369" width="336" height="109" rx="1" fill="#0a0008"/>
+          <!-- White keys -->
+          <rect x="27" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="50" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="73" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="96" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="119" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="142" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="165" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="188" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="211" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="234" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="257" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="280" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="303" y="372" width="20" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <rect x="326" y="372" width="16" height="88" rx="1" fill="url(#keyGrad3)"/>
+          <!-- Black keys -->
+          <rect x="42" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="65" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="111" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="134" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="157" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="203" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="226" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="272" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="295" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <rect x="318" y="372" width="13" height="56" rx="1" fill="#020002"/>
+          <!-- Red glow on keys being played -->
+          <rect x="134" y="372" width="13" height="56" rx="1" fill="#FF0030" opacity="0.4">
+            <animate attributeName="opacity" values="0.4;0.1;0.4" dur="1.5s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="157" y="372" width="13" height="56" rx="1" fill="#FF0030" opacity="0.3">
+            <animate attributeName="opacity" values="0.3;0.05;0.3" dur="2s" repeatCount="indefinite"/>
+          </rect>
+          <!-- Red tint reflection on piano -->
+          <rect x="22" y="369" width="336" height="20" fill="rgba(255,0,48,0.06)"/>
+          <!-- Bottom gradient -->
+          <rect width="380" height="520" fill="url(#bg3)" opacity="0.3"/>
+          <radialGradient id="vignette3" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" style="stop-color:#000;stop-opacity:0"/>
+            <stop offset="100%" style="stop-color:#000;stop-opacity:0.75"/>
+          </radialGradient>
+          <rect width="380" height="520" fill="url(#vignette3)"/>
+          <!-- Scan line effect on portrait -->
+          <rect width="380" height="2" fill="rgba(255,0,48,0.15)" opacity="0.6">
+            <animateTransform attributeName="transform" type="translate" from="0,-10" to="0,530" dur="5s" repeatCount="indefinite"/>
+          </rect>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ ABOUT ══ -->
+<section id="about">
+  <div class="inner" style="max-width:1200px;margin:0 auto;">
+    <div class="s-header">
+      <div class="s-number">01</div>
+      <div class="s-title-wrap">
+        <div class="s-tag">// DOSSIER_ARTISTE</div>
+        <h2>PROFIL <span class="red">&amp;</span> BIOGRAPHIE</h2>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:3rem;align-items:start;">
+      <div>
+        <div class="bio-panel">
+          <p>Née à <strong>Prague</strong> d'une famille de musiciens, Elena Voss commence le piano à quatre ans. À douze ans, elle donnait son premier récital au <strong>Rudolfinum</strong>.</p>
+          <p>Formée au <strong>Conservatoire National Supérieur de Paris</strong> puis à la Hochschule für Musik de Berlin, Elena développe un style singulier entre héritage romantique et minimalisme contemporain.</p>
+          <p>Son dernier album <strong>« Fragments of Silence »</strong> s'est hissé au sommet des charts classiques européens pendant <strong>18 semaines</strong> consécutives.</p>
+        </div>
+
+        <div class="awards-panel" style="margin-top:1.5rem;border:1px solid var(--border);background:var(--panel);padding:1.25rem 1.5rem;clip-path:polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));position:relative;">
+          <div style="position:absolute;top:-10px;left:1.5rem;font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:var(--red);background:var(--dark2);padding:0 0.5rem;letter-spacing:0.15em;">DISTINCTIONS // AWARDS</div>
+          <div class="award-row">
+            <div class="award-num">01.</div>
+            <div class="award-name">Prix Chopin — 1er Prix</div>
+            <div class="award-year">2018</div>
+          </div>
+          <div class="award-row">
+            <div class="award-num">02.</div>
+            <div class="award-name">Grammy Nomination — Best Classical</div>
+            <div class="award-year">2021</div>
+          </div>
+          <div class="award-row">
+            <div class="award-num">03.</div>
+            <div class="award-name">Victoires de la Musique</div>
+            <div class="award-year">2023</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="stat-val">28</div><div class="stat-lbl">Années de scène</div></div>
+          <div class="stat-cell"><div class="stat-val">47</div><div class="stat-lbl">Pays en tournée</div></div>
+          <div class="stat-cell"><div class="stat-val">12</div><div class="stat-lbl">Albums publiés</div></div>
+          <div class="stat-cell"><div class="stat-val">3K+</div><div class="stat-lbl">Concerts donnés</div></div>
+        </div>
+
+        <div style="margin-top:1.5rem;border:1px solid var(--border);background:var(--panel);padding:1.5rem;position:relative;">
+          <div style="position:absolute;top:-10px;left:1.5rem;font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:var(--red);background:var(--dark2);padding:0 0.5rem;letter-spacing:0.15em;">DISCOGRAPHIE // RÉCENTE</div>
+          <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.5rem;">
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem;background:rgba(255,0,48,0.04);border:1px solid rgba(255,0,48,0.1);">
+              <div style="width:42px;height:42px;background:var(--red-dim);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">♪</div>
+              <div>
+                <div style="font-size:0.9rem;font-weight:600;">Fragments of Silence</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);">ALBUM // 2023 // 12 PISTES</div>
+              </div>
+              <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--red);">#1 EU</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem;background:rgba(255,0,48,0.04);border:1px solid rgba(255,0,48,0.1);">
+              <div style="width:42px;height:42px;background:rgba(139,0,32,0.5);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">♪</div>
+              <div>
+                <div style="font-size:0.9rem;font-weight:600;">Nocturnal Studies</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);">ALBUM // 2021 // 10 PISTES</div>
+              </div>
+              <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);">#3 EU</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.75rem;background:rgba(255,0,48,0.04);border:1px solid rgba(255,0,48,0.1);">
+              <div style="width:42px;height:42px;background:rgba(100,0,20,0.3);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">♪</div>
+              <div>
+                <div style="font-size:0.9rem;font-weight:600;">Chopin: Intégrale des Nocturnes</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);">ALBUM // 2019 // 21 PISTES</div>
+              </div>
+              <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--text-dim);">#2 EU</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ MEDIA ══ -->
+<section id="media">
+  <div class="inner" style="max-width:1400px;margin:0 auto;">
+    <div class="s-header">
+      <div class="s-number">02</div>
+      <div class="s-title-wrap">
+        <div class="s-tag">// ARCHIVES_MULTIMÉDIAS</div>
+        <h2>GALERIE <span class="red">&amp;</span> PERFORMANCES</h2>
+      </div>
+    </div>
+
+    <div class="media-tabs">
+      <button class="mtab active" onclick="switchMediaTab('photos')">[ PHOTOS ]</button>
+      <button class="mtab" onclick="switchMediaTab('videos')">[ VIDÉOS ]</button>
+    </div>
+
+    <div class="carousel-wrap">
+      <!-- PHOTOS -->
+      <div id="photoTrack" class="carousel-track">
+        <div class="c-slide">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;">
+              <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect width="340" height="460" fill="#0d0005"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;fill:rgba(255,0,48,0.15);">🎹</text>
+                <g stroke="rgba(255,0,48,0.06)" stroke-width="0.5">
+                  <line x1="0" y1="80" x2="340" y2="80"/><line x1="0" y1="160" x2="340" y2="160"/><line x1="0" y1="240" x2="340" y2="240"/><line x1="0" y1="320" x2="340" y2="320"/><line x1="0" y1="400" x2="340" y2="400"/>
+                  <line x1="80" y1="0" x2="80" y2="460"/><line x1="160" y1="0" x2="160" y2="460"/><line x1="240" y1="0" x2="240" y2="460"/>
+                </g>
+                <circle cx="170" cy="200" r="100" fill="none" stroke="rgba(255,0,48,0.1)" stroke-width="1"/>
+                <circle cx="170" cy="200" r="60" fill="none" stroke="rgba(255,0,48,0.08)" stroke-width="1"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;">🎹</text>
+              </svg>
+            </div>
+            <div class="c-slide-corner"></div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">IMG // 001 // 2024</div>
+              <div class="c-slide-title">Carnegie Hall</div>
+              <div class="c-slide-sub">New York // Récital Chopin &amp; Liszt</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;">
+              <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect width="340" height="460" fill="#00050d"/>
+                <g stroke="rgba(255,0,48,0.06)" stroke-width="0.5"><line x1="0" y1="80" x2="340" y2="80"/><line x1="0" y1="160" x2="340" y2="160"/><line x1="0" y1="240" x2="340" y2="240"/><line x1="0" y1="320" x2="340" y2="320"/><line x1="0" y1="400" x2="340" y2="400"/><line x1="80" y1="0" x2="80" y2="460"/><line x1="160" y1="0" x2="160" y2="460"/><line x1="240" y1="0" x2="240" y2="460"/></g>
+                <circle cx="170" cy="200" r="100" fill="none" stroke="rgba(255,0,48,0.08)" stroke-width="1"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;">🎼</text>
+              </svg>
+            </div>
+            <div class="c-slide-corner"></div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">IMG // 002 // 2023</div>
+              <div class="c-slide-title">Philharmonie de Paris</div>
+              <div class="c-slide-sub">Première mondiale — Suite Op.7</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;">
+              <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect width="340" height="460" fill="#050005"/>
+                <g stroke="rgba(255,0,48,0.06)" stroke-width="0.5"><line x1="0" y1="80" x2="340" y2="80"/><line x1="0" y1="160" x2="340" y2="160"/><line x1="0" y1="240" x2="340" y2="240"/><line x1="0" y1="320" x2="340" y2="320"/><line x1="0" y1="400" x2="340" y2="400"/><line x1="80" y1="0" x2="80" y2="460"/><line x1="160" y1="0" x2="160" y2="460"/><line x1="240" y1="0" x2="240" y2="460"/></g>
+                <circle cx="170" cy="200" r="100" fill="none" stroke="rgba(255,0,48,0.08)" stroke-width="1"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;">🎶</text>
+              </svg>
+            </div>
+            <div class="c-slide-corner"></div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">IMG // 003 // 2024</div>
+              <div class="c-slide-title">Wiener Musikverein</div>
+              <div class="c-slide-sub">Vienna // Brahms Piano Concerto No.2</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;">
+              <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect width="340" height="460" fill="#0d0500"/>
+                <g stroke="rgba(255,0,48,0.06)" stroke-width="0.5"><line x1="0" y1="80" x2="340" y2="80"/><line x1="0" y1="160" x2="340" y2="160"/><line x1="0" y1="240" x2="340" y2="240"/><line x1="0" y1="320" x2="340" y2="320"/><line x1="0" y1="400" x2="340" y2="400"/><line x1="80" y1="0" x2="80" y2="460"/><line x1="160" y1="0" x2="160" y2="460"/><line x1="240" y1="0" x2="240" y2="460"/></g>
+                <circle cx="170" cy="200" r="100" fill="none" stroke="rgba(255,0,48,0.08)" stroke-width="1"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;">🌙</text>
+              </svg>
+            </div>
+            <div class="c-slide-corner"></div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">IMG // 004 // 2023</div>
+              <div class="c-slide-title">Studio Session</div>
+              <div class="c-slide-sub">Fragments of Silence — Enregistrement</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;">
+              <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                <rect width="340" height="460" fill="#050008"/>
+                <g stroke="rgba(255,0,48,0.06)" stroke-width="0.5"><line x1="0" y1="80" x2="340" y2="80"/><line x1="0" y1="160" x2="340" y2="160"/><line x1="0" y1="240" x2="340" y2="240"/><line x1="0" y1="320" x2="340" y2="320"/><line x1="0" y1="400" x2="340" y2="400"/><line x1="80" y1="0" x2="80" y2="460"/><line x1="160" y1="0" x2="160" y2="460"/><line x1="240" y1="0" x2="240" y2="460"/></g>
+                <circle cx="170" cy="200" r="100" fill="none" stroke="rgba(255,0,48,0.08)" stroke-width="1"/>
+                <text x="50%" y="42%" dominant-baseline="middle" text-anchor="middle" style="font-size:72px;">✨</text>
+              </svg>
+            </div>
+            <div class="c-slide-corner"></div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">IMG // 005 // 2023</div>
+              <div class="c-slide-title">Festival de Salzbourg</div>
+              <div class="c-slide-sub">Mozart &amp; Compositions originales</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIDEOS -->
+      <div id="videoTrack" class="carousel-track" style="display:none;">
+        <div class="c-slide" onclick="openVid('Nocturne Op.9 No.2','Chopin · Carnegie Hall 2024 · 4:32')">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;background:#050005;"></div>
+            <div class="c-slide-corner"></div>
+            <div class="play-overlay">▶</div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">VID // 001 // 4:32</div>
+              <div class="c-slide-title">Nocturne Op.9 No.2</div>
+              <div class="c-slide-sub">Chopin // Carnegie Hall 2024</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide" onclick="openVid('Sonate Clair de Lune','Beethoven · Philharmonie Paris 2023 · 5:48')">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;background:#000508;"></div>
+            <div class="c-slide-corner"></div>
+            <div class="play-overlay">▶</div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">VID // 002 // 5:48</div>
+              <div class="c-slide-title">Clair de Lune</div>
+              <div class="c-slide-sub">Beethoven // Philharmonie Paris 2023</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide" onclick="openVid('Fragments of Silence','E. Voss — Composition · Studio 2023 · 7:12')">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;background:#080500;"></div>
+            <div class="c-slide-corner"></div>
+            <div class="play-overlay">▶</div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">VID // 003 // 7:12</div>
+              <div class="c-slide-title">Fragments of Silence</div>
+              <div class="c-slide-sub">Composition originale · Studio 2023</div>
+            </div>
+          </div>
+        </div>
+        <div class="c-slide" onclick="openVid('Rhapsody in Blue','Gershwin · Musikverein Vienne 2024 · 16:45')">
+          <div class="c-slide-inner">
+            <div class="c-slide-bg" style="position:absolute;inset:0;background:#000308;"></div>
+            <div class="c-slide-corner"></div>
+            <div class="play-overlay">▶</div>
+            <div class="c-slide-hud">
+              <div class="c-slide-num">VID // 004 // 16:45</div>
+              <div class="c-slide-title">Rhapsody in Blue</div>
+              <div class="c-slide-sub">Gershwin // Musikverein 2024</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="carousel-controls">
+      <button class="cc-btn" onclick="slideMedia(-1)">← PREV</button>
+      <div class="cc-dots" id="mediaDots"></div>
+      <button class="cc-btn" onclick="slideMedia(1)">NEXT →</button>
+      <div class="cc-count" id="mediaCount">01 / 05</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ══ CONCERTS ══ -->
+<section id="concerts">
+  <div class="inner" style="max-width:1200px;margin:0 auto;">
+    <div class="s-header">
+      <div class="s-number">03</div>
+      <div class="s-title-wrap">
+        <div class="s-tag">// AGENDA_2025</div>
+        <h2>PROCHAINS <span class="red">CONCERTS</span></h2>
+      </div>
+    </div>
+
+    <div class="concert-grid" id="concertGrid"></div>
+  </div>
+</section>
+
+<!-- ══ VIDEO MODAL ══ -->
+<div class="v-modal" id="vModal">
+  <div class="v-modal-box">
+    <div class="v-modal-header">
+      <span id="vModalTitle">LECTURE_EN_COURS</span>
+      <button class="v-close" onclick="closeVid()">[ ✕ FERMER ]</button>
+    </div>
+    <div class="v-screen">
+      <div class="v-screen-content" id="vScreenContent">Nocturne Op.9 No.2 — LECTURE...</div>
+    </div>
+    <div class="v-modal-footer">
+      <span id="vModalSub">SOURCE:</span>
+      <span>STATUS: STREAMING_ACTIVE</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TICKET MODAL ══ -->
+<div class="t-modal" id="tModal">
+  <div class="t-modal-box">
+    <div class="t-modal-head">
+      <h3 id="tTitle">CONCERT_TITLE</h3>
+      <p id="tInfo">DATE // VENUE</p>
+      <button class="t-close" onclick="closeTModal()">✕</button>
+    </div>
+    <div class="t-body">
+      <div class="f-row">
+        <div class="f-group">
+          <label class="f-label">PRÉNOM <span>*</span></label>
+          <input class="f-input" id="fFirst" placeholder="Marie" type="text">
+        </div>
+        <div class="f-group">
+          <label class="f-label">NOM <span>*</span></label>
+          <input class="f-input" id="fLast" placeholder="Dupont" type="text">
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label">EMAIL <span>*</span></label>
+        <input class="f-input" id="fEmail" placeholder="marie@example.com" type="email">
+      </div>
+      <div class="f-group">
+        <label class="f-label">CATÉGORIE</label>
+        <div class="cat-grid">
+          <div class="cat-opt sel" onclick="selCat(this,45,'CAT-C')" data-price="45" data-cat="CAT-C">
+            <div class="cat-name">CAT. C</div>
+            <div class="cat-price" id="cpC">45€</div>
+          </div>
+          <div class="cat-opt" onclick="selCat(this,75,'CAT-B')" data-price="75" data-cat="CAT-B">
+            <div class="cat-name">CAT. B</div>
+            <div class="cat-price" id="cpB">75€</div>
+          </div>
+          <div class="cat-opt" onclick="selCat(this,120,'CAT-A')" data-price="120" data-cat="CAT-A">
+            <div class="cat-name">CAT. A</div>
+            <div class="cat-price" id="cpA">120€</div>
+          </div>
+        </div>
+      </div>
+      <div class="f-group">
+        <label class="f-label">QUANTITÉ</label>
+        <select class="f-select" id="fQty" onchange="calcTotal()">
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div class="total-row">
+        <div class="total-lbl">TOTAL_AMOUNT</div>
+        <div class="total-val" id="totalVal">45 €</div>
+      </div>
+      <button class="btn-gen" onclick="genPDF()">
+        <span>⬇</span><span>GÉNÉRER BILLET PDF</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="f-brand">ELENA VOSS</div>
+      <p class="f-desc">Pianiste internationale et compositrice. Interprète depuis les plus grandes scènes mondiales — Carnegie Hall, Philharmonie de Paris, Wiener Musikverein.</p>
+    </div>
+    <div class="f-section">
+      <h4>// NAVIGATION</h4>
+      <ul>
+        <li><a href="#about">> Profil</a></li>
+        <li><a href="#media">> Galerie</a></li>
+        <li><a href="#concerts">> Concerts</a></li>
+        <li><a href="#concerts">> Billetterie</a></li>
+      </ul>
+    </div>
+    <div class="f-section">
+      <h4>// SAISONS</h4>
+      <ul>
+        <li>2025 — Europe Tour</li>
+        <li>2024 — Americas Tour</li>
+        <li>2023 — Asia Pacific</li>
+        <li>Archive complète →</li>
+      </ul>
+    </div>
+    <div class="f-section">
+      <h4>// CONTACT</h4>
+      <ul>
+        <li><a href="mailto:contact@elenavoss.com">> contact@elenavoss.com</a></li>
+        <li>> Presse &amp; Médias</li>
+        <li>> Management</li>
+        <li>> Partenariats</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 ELENA VOSS — ALL_RIGHTS_RESERVED</span>
+    <span class="f-sig">[ SYS: OPERATIONAL // BUILD: 2025.03.01 ]</span>
+  </div>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-head" id="toastHead">SYSTEM</div>
+  <div class="toast-msg" id="toastMsg">Message</div>
+</div>
+
+<script>
+// ══ CURSOR ══
+const cDot = document.getElementById('cDot');
+const cCross = document.getElementById('cCross');
+document.addEventListener('mousemove', e => {
+  cDot.style.transform = `translate(${e.clientX - 3}px, ${e.clientY - 3}px)`;
+  cCross.style.transform = `translate(${e.clientX - 12}px, ${e.clientY - 12}px)`;
+});
+
+// ══ CLOCK ══
+function updateClock() {
+  const now = new Date();
+  document.getElementById('liveClock').textContent =
+    [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ══ PARTICLES ══
+const pf = document.getElementById('particleField');
+for(let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  const x = Math.random() * 100;
+  const dur = 8 + Math.random() * 15;
+  const delay = -Math.random() * 20;
+  const drift = (Math.random() - 0.5) * 200;
+  p.style.cssText = `
+    left:${x}%;
+    --drift:${drift}px;
+    animation:floatParticle ${dur}s linear ${delay}s infinite;
+    opacity:${0.3 + Math.random() * 0.7};
+    width:${Math.random() > 0.7 ? 2 : 1}px;
+    height:${Math.random() > 0.7 ? 2 : 1}px;
+  `;
+  pf.appendChild(p);
+}
+
+// ══ CONCERTS DATA ══
+const concerts = [
+  { day:'14', month:'MARS', year:'2025', title:'Récital Chopin — Œuvres Complètes', venue:'Philharmonie de Paris, Grande Salle', prog:'Nocturnes · Ballades · Études Op.25', price:45, maxP:120, sold:false },
+  { day:'29', month:'MARS', year:'2025', title:'Concerto pour Piano No.3 — Rachmaninov', venue:'Opéra Royal de Versailles', prog:'Orchestre de Paris · Dir. Gustavo Dudamel', price:65, maxP:180, sold:false },
+  { day:'12', month:'AVRL', year:'2025', title:'Fragments of Silence — Création Mondiale', venue:'Elbphilharmonie, Hamburg', prog:'Compositions originales + Brahms Piano Quartet', price:55, maxP:150, sold:false },
+  { day:'03', month:'MAI', year:'2025', title:'Beethoven — Les Sonates de la Maturité', venue:'Royal Albert Hall, London', prog:'Op.57 Appassionata · Op.106 Hammerklavier', price:70, maxP:200, sold:false },
+  { day:'21', month:'JUIN', year:'2025', title:'Nuit de la Musique — Plein Air', venue:'Jardins du Palais Royal, Paris', prog:'Programme romantique sous les étoiles', price:0, maxP:0, sold:true },
+  { day:'05', month:'SEPT', year:'2025', title:'Festival de Salzbourg — Gala d\'Ouverture', venue:'Grosses Festspielhaus, Salzburg', prog:'Mozart · Schubert · E.Voss', price:90, maxP:280, sold:false },
+];
+
+let curConcert = 0;
+let curPrice = 45;
+
+function renderConcerts() {
+  document.getElementById('concertGrid').innerHTML = concerts.map((c,i) => `
+    <div class="concert-row">
+      <div class="c-date-block">
+        <div class="c-day">${c.day}</div>
+        <div class="c-month">${c.month}</div>
+        <div class="c-month">${c.year}</div>
+      </div>
+      <div class="c-info">
+        <div class="c-title">${c.title}</div>
+        <div class="c-venue">${c.venue}</div>
+      </div>
+      <div class="c-program">
+        <div class="c-prog-label">PROGRAMME</div>
+        <div class="c-prog-text">${c.prog}</div>
+      </div>
+      <div class="c-action">
+        ${c.sold ? 
+          '<div class="badge-full">[ COMPLET ]</div>' :
+          `<div class="c-price">dès ${c.price}€ <span>/ ${c.maxP}€</span></div>
+           <button class="btn-book" onclick="openTModal(${i})"><span>RÉSERVER →</span></button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+renderConcerts();
+
+// ══ VIDEO MODAL ══
+function openVid(title, sub) {
+  document.getElementById('vModalTitle').textContent = title.toUpperCase();
+  document.getElementById('vScreenContent').textContent = title + ' — LECTURE EN COURS';
+  document.getElementById('vModalSub').textContent = 'SOURCE: ' + sub;
+  document.getElementById('vModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeVid() {
+  document.getElementById('vModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ══ TICKET MODAL ══
+function openTModal(idx) {
+  curConcert = idx;
+  const c = concerts[idx];
+  document.getElementById('tTitle').textContent = c.title.toUpperCase();
+  document.getElementById('tInfo').textContent = `${c.day} ${c.month} ${c.year} // ${c.venue}`;
+  
+  // Set prices from concert
+  const mid = Math.round((c.price + c.maxP) / 2);
+  document.getElementById('cpC').textContent = c.price + '€';
+  document.getElementById('cpB').textContent = mid + '€';
+  document.getElementById('cpA').textContent = c.maxP + '€';
+  document.querySelectorAll('.cat-opt')[0].dataset.price = c.price;
+  document.querySelectorAll('.cat-opt')[1].dataset.price = mid;
+  document.querySelectorAll('.cat-opt')[2].dataset.price = c.maxP;
+
+  // Reset selection
+  document.querySelectorAll('.cat-opt').forEach(el => el.classList.remove('sel'));
+  document.querySelectorAll('.cat-opt')[0].classList.add('sel');
+  curPrice = c.price;
+  calcTotal();
+
+  document.getElementById('tModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeTModal() {
+  document.getElementById('tModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function selCat(el, price, cat) {
+  document.querySelectorAll('.cat-opt').forEach(e => e.classList.remove('sel'));
+  el.classList.add('sel');
+  curPrice = parseFloat(el.dataset.price);
+  calcTotal();
+}
+function calcTotal() {
+  const qty = parseInt(document.getElementById('fQty').value) || 1;
+  document.getElementById('totalVal').textContent = (curPrice * qty).toFixed(0) + ' €';
+}
+
+// ══ PDF GENERATION ══
+function genPDF() {
+  const first = document.getElementById('fFirst').value.trim();
+  const last = document.getElementById('fLast').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const qty = parseInt(document.getElementById('fQty').value);
+  const catEl = document.querySelector('.cat-opt.sel');
+  const cat = catEl ? catEl.dataset.cat : 'CAT-C';
+
+  if (!first || !last || !email) { showToast('ERREUR_INPUT','Remplissez tous les champs.',true); return; }
+  if (!email.includes('@')) { showToast('ERREUR_EMAIL','Email invalide.',true); return; }
+
+  const c = concerts[curConcert];
+  const total = (curPrice * qty).toFixed(0);
+  const tNum = 'EV-' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*999+100);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:[210,100] });
+
+  // BG
+  doc.setFillColor(4, 0, 4);
+  doc.rect(0, 0, 210, 100, 'F');
+
+  // Grid lines
+  doc.setDrawColor(30, 0, 10);
+  doc.setLineWidth(0.2);
+  for(let x = 0; x <= 210; x += 20) doc.line(x, 0, x, 100);
+  for(let y = 0; y <= 100; y += 20) doc.line(0, y, 210, y);
+
+  // Left accent bar
+  doc.setFillColor(255, 0, 48);
+  doc.rect(0, 0, 5, 100, 'F');
+
+  // Right stub
+  doc.setFillColor(8, 0, 5);
+  doc.rect(152, 0, 58, 100, 'F');
+  doc.setDrawColor(60, 0, 20);
+  doc.setLineWidth(0.3);
+  doc.setLineDash([1.5, 1.5]);
+  doc.line(152, 3, 152, 97);
+  doc.setLineDash([]);
+
+  // Corner markers
+  doc.setDrawColor(255, 0, 48);
+  doc.setLineWidth(0.8);
+  [[8,3],[8,3],[8,97],[8,97],[146,3],[146,3],[146,97],[146,97]];
+  // TL
+  doc.line(8,3,18,3); doc.line(8,3,8,10);
+  // TR  
+  doc.line(146,3,136,3); doc.line(146,3,146,10);
+  // BL
+  doc.line(8,97,18,97); doc.line(8,97,8,90);
+  // BR
+  doc.line(146,97,136,97); doc.line(146,97,146,90);
+
+  // Artist name
+  doc.setTextColor(255, 0, 48);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('ELENA VOSS', 16, 18);
+
+  doc.setTextColor(100, 40, 55);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.text('// PIANISTE INTERNATIONALE & COMPOSITRICE', 16, 23);
+
+  // Separator
+  doc.setDrawColor(100, 0, 30);
+  doc.setLineWidth(0.3);
+  doc.line(16, 26, 145, 26);
+
+  // Concert title
+  doc.setTextColor(240, 220, 225);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  const titleLines = doc.splitTextToSize(c.title.toUpperCase(), 120);
+  doc.text(titleLines, 16, 33);
+
+  // Date
+  doc.setTextColor(255, 0, 48);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`${c.day} ${c.month} ${c.year}`, 16, 46);
+
+  // Venue
+  doc.setTextColor(180, 150, 160);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text(c.venue, 16, 52);
+
+  // Program
+  doc.setTextColor(180, 0, 60);
+  doc.setFontSize(6);
+  doc.text('PROG: ' + c.prog, 16, 58);
+
+  // Holder
+  doc.setTextColor(80, 40, 50);
+  doc.setFontSize(6);
+  doc.text('TITULAIRE:', 16, 68);
+  doc.setTextColor(240, 220, 225);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(`${first.toUpperCase()} ${last.toUpperCase()}`, 16, 74);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 80, 90);
+  doc.setFontSize(6);
+  doc.text(email, 16, 79);
+
+  // Cat / qty strip
+  doc.setFillColor(20, 0, 10);
+  doc.rect(16, 83, 125, 9, 'F');
+  doc.setDrawColor(80, 0, 30);
+  doc.setLineWidth(0.3);
+  doc.rect(16, 83, 125, 9, 'S');
+  doc.setTextColor(255, 0, 48);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text(`${cat}  |  QTÉ: ${qty}  |  TOTAL: ${total} EUR`, 18, 88.5);
+
+  // === RIGHT STUB ===
+  doc.setTextColor(100, 0, 40);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('ELENA VOSS', 181, 14, {align:'center'});
+
+  doc.setDrawColor(60, 0, 20);
+  doc.line(157, 18, 205, 18);
+
+  doc.setTextColor(255, 0, 48);
+  doc.setFontSize(16);
+  doc.text(c.day, 181, 30, {align:'center'});
+  doc.setTextColor(100, 40, 55);
+  doc.setFontSize(7);
+  doc.text(c.month + ' ' + c.year, 181, 36, {align:'center'});
+
+  doc.setDrawColor(60, 0, 20);
+  doc.line(157, 40, 205, 40);
+
+  doc.setTextColor(180, 140, 155);
+  doc.setFontSize(6);
+  doc.text(cat, 181, 47, {align:'center'});
+  doc.setTextColor(255, 179, 0);
+  doc.setFontSize(11);
+  doc.text(curPrice + ' €', 181, 55, {align:'center'});
+
+  // Barcode visual
+  let bx = 157;
+  const bars = [1.2,0.6,1.8,0.4,1,0.7,1.5,0.5,1.1,0.8,1.6,0.4,1.3,0.6,1,0.9,1.4,0.5,1.2];
+  doc.setFillColor(180, 140, 155);
+  bars.forEach((w, i) => {
+    if(i % 2 === 0) doc.rect(bx, 62, w, 16, 'F');
+    bx += w + 0.3;
+  });
+
+  // Ticket number
+  doc.setTextColor(80, 40, 55);
+  doc.setFontSize(5);
+  doc.text(tNum, 181, 83, {align:'center'});
+
+  // Red x qty circle
+  doc.setDrawColor(255, 0, 48);
+  doc.setLineWidth(0.5);
+  doc.circle(181, 91, 5);
+  doc.setTextColor(255, 0, 48);
+  doc.setFontSize(7);
+  doc.text('x' + qty, 181, 93, {align:'center'});
+
+  // Scanline effect
+  doc.setFillColor(255, 0, 48);
+  for(let y = 0; y < 100; y += 4) {
+    doc.setFillColor(255, 0, 48);
+    doc.rect(0, y, 210, 0.3, 'F');
+  }
+
+  doc.save(`TICKET_EV_${c.month}${c.year}_${first}_${last}.pdf`);
+  closeTModal();
+  showToast('BILLET_GÉNÉRÉ', `Votre billet pour le ${c.day} ${c.month} a été téléchargé.`);
+}
+
+// ══ TOAST ══
+function showToast(head, msg, isErr = false) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastHead').textContent = '// ' + head;
+  document.getElementById('toastMsg').textContent = msg;
+  t.style.borderColor = isErr ? '#ff4444' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ══ CAROUSEL ══
+let mediaCurrent = 0;
+let mediaTab = 'photos';
+
+function getCTrack() {
+  return mediaTab === 'photos' ?
+    document.getElementById('photoTrack') :
+    document.getElementById('videoTrack');
+}
+function getCSlides() { return getCTrack().children.length; }
+
+function renderDots() {
+  const d = document.getElementById('mediaDots');
+  const n = getCSlides();
+  d.innerHTML = Array.from({length:n}, (_,i) =>
+    `<div class="cc-dot${i === mediaCurrent ? ' active':''}" onclick="gotoSlide(${i})"></div>`
+  ).join('');
+  document.getElementById('mediaCount').textContent =
+    String(mediaCurrent+1).padStart(2,'0') + ' / ' + String(n).padStart(2,'0');
+}
+
+function applySlide() {
+  const track = getCTrack();
+  const w = (track.children[0]?.offsetWidth || 340) + 2;
+  track.style.transform = `translateX(-${mediaCurrent * w}px)`;
+  renderDots();
+}
+
+function slideMedia(dir) {
+  mediaCurrent = (mediaCurrent + dir + getCSlides()) % getCSlides();
+  applySlide();
+}
+
+function gotoSlide(i) {
+  mediaCurrent = i;
+  applySlide();
+}
+
+function switchMediaTab(tab) {
+  mediaTab = tab; mediaCurrent = 0;
+  document.querySelectorAll('.mtab').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='photos')||(i===1&&tab==='videos'));
+  });
+  document.getElementById('photoTrack').style.display = tab==='photos'?'flex':'none';
+  document.getElementById('videoTrack').style.display = tab==='videos'?'flex':'none';
+  setTimeout(applySlide, 10);
+}
+
+renderDots();
+window.addEventListener('resize', applySlide);
+
+// Modal closes
+document.getElementById('vModal').addEventListener('click', e => {
+  if(e.target === document.getElementById('vModal')) closeVid();
+});
+document.getElementById('tModal').addEventListener('click', e => {
+  if(e.target === document.getElementById('tModal')) closeTModal();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') { closeVid(); closeTModal(); }
+});
+
+// ══ SCROLL REVEAL ══
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, {threshold:0.1});
+
+document.querySelectorAll('.concert-row,.stat-cell,.award-row,.bio-panel').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(15px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+  obs.observe(el);
+});
+
+// ══ NAV SCROLL ══
+window.addEventListener('scroll', () => {
+  document.querySelector('nav').style.background =
+    window.scrollY > 80 ? 'rgba(0,0,0,0.98)' : 'rgba(0,0,0,0.9)';
+});
+</script>
+</body>
+</html>
