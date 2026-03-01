@@ -58,9 +58,6 @@
     </style>
 </head>
 <body>
-   <button id="fullscreen-btn" onclick="toggleFullScreen()" style="position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon); color: var(--neon); padding: 8px 12px; border-radius: 5px; font-size: 10px; z-index: 1000; transition: opacity 1s ease; font-family: 'Montserrat', sans-serif; cursor: pointer;">
-    MODE IMMERSIF
-   </button>
     <div id="session-badge">SESSION <span id="display-session-id">1</span></div>
     <h1>SAPHIR</h1>
     <p>Choisissez la suite du concert</p>
@@ -210,56 +207,6 @@ function hexToRgb(hex) {
                 document.getElementById('label-m3').innerText = titles.m3;
             });
         }
-
-       let fullscreenTimeout;
-
-function showFullscreenBtn() {
-    const btn = document.getElementById('fullscreen-btn');
-    btn.style.opacity = "1";
-    btn.style.pointerEvents = "auto";
-    
-    // Annule le précédent timeout s'il existe
-    clearTimeout(fullscreenTimeout);
-    
-    // Cache le bouton après 5 secondes d'inactivité
-    fullscreenTimeout = setTimeout(() => {
-        btn.style.opacity = "0";
-        btn.style.pointerEvents = "none";
-    }, 5000);
-}
-
-window.toggleFullScreen = function() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log("Erreur plein écran: " + err.message);
-        });
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-};
-
-// Écouter les changements de mode plein écran
-document.addEventListener('fullscreenchange', () => {
-    const btn = document.getElementById('fullscreen-btn');
-    if (document.fullscreenElement) {
-        btn.innerText = "QUITTER LE PLEIN ÉCRAN";
-        showFullscreenBtn(); // Lance le décompte pour disparaître
-    } else {
-        btn.innerText = "MODE IMMERSIF";
-        btn.style.opacity = "1";
-        btn.style.pointerEvents = "auto";
-        clearTimeout(fullscreenTimeout);
-    }
-});
-
-// Si l'utilisateur touche l'écran, le bouton réapparaît brièvement
-document.addEventListener('touchstart', showFullscreenBtn);
-document.addEventListener('mousemove', showFullscreenBtn);
-
-// Lancer le timer au chargement
-showFullscreenBtn();
     </script>
 </body>
 </html>
