@@ -3,123 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAPHIR LIVE | Pianiste Professionnelle</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>SAPHIR LIVE | Pianiste Classique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         :root {
-            --bg-deep: #020c1b;
-            --saphir-primary: #0072ff; 
-            --saphir-light: #00c6ff;
-            --text-white: #ffffff;
-            --text-gray: #a8b2d1;
-            --transition: all 0.3s ease-in-out;
+            --bg-black: #000000;
+            --saphir-blue: #0044ff; /* Bleu Saphir profond */
+            --saphir-bright: #00d4ff;
+            --text-main: #ffffff;
+            --grid-border: rgba(255, 255, 255, 0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
+        
         body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: var(--bg-deep);
-            color: var(--text-white);
-            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-black);
+            color: var(--text-main);
+            line-height: 1.4;
             overflow-x: hidden;
-            padding-bottom: 120px; /* Espace pour le piano */
         }
 
-        h1, h2, h3, .nav-logo { font-family: 'Cinzel', serif; text-transform: uppercase; letter-spacing: 2px; }
+        h1, h2, .nav-logo { 
+            font-family: 'Syncopate', sans-serif; 
+            text-transform: uppercase; 
+            font-weight: 700;
+        }
 
-        /* --- Navigation --- */
+        /* --- STRUCTURE GRID (Style MusicFlex) --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            min-height: 100vh;
+        }
+
+        /* --- SIDEBAR NAV --- */
         nav {
             position: fixed;
-            top: 0; width: 100%; padding: 25px 50px;
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(2, 12, 27, 0.95);
+            left: 0; top: 0; height: 100vh;
+            width: 80px;
+            border-right: 1px solid var(--grid-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 0;
+            background: var(--bg-black);
             z-index: 1000;
-            border-bottom: 1px solid var(--saphir-primary);
         }
-        .nav-logo { font-size: 1.4rem; color: var(--saphir-primary); text-decoration: none; font-weight: bold; }
-        .nav-links { display: flex; list-style: none; }
-        .nav-links li { margin-left: 30px; }
-        .nav-links a { text-decoration: none; color: var(--text-white); font-size: 0.85rem; transition: var(--transition); }
-        .nav-links a:hover { color: var(--saphir-primary); }
+        .nav-logo { transform: rotate(-90deg); color: var(--saphir-blue); font-size: 1.2rem; white-space: nowrap; }
+        .nav-links { list-style: none; writing-mode: vertical-rl; transform: rotate(180deg); }
+        .nav-links li { margin: 20px 0; }
+        .nav-links a { text-decoration: none; color: var(--text-main); font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; transition: 0.3s; }
+        .nav-links a:hover { color: var(--saphir-blue); }
 
-        /* --- Accueil --- */
+        /* --- MAIN CONTENT --- */
+        main { margin-left: 80px; width: calc(100% - 80px); }
+
+        section {
+            padding: 100px 5%;
+            border-bottom: 1px solid var(--grid-border);
+        }
+
+        .section-header { margin-bottom: 60px; }
+        .section-num { color: var(--saphir-blue); font-family: 'Syncopate'; font-size: 1rem; display: block; margin-bottom: 10px; }
+        .section-title { font-size: clamp(2rem, 8vw, 6rem); line-height: 0.9; letter-spacing: -2px; }
+
+        /* --- HOME --- */
         #accueil {
             height: 100vh;
-            background: linear-gradient(rgba(2, 12, 27, 0.5), rgba(2, 12, 27, 0.9)), 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: linear-gradient(to top, var(--bg-black), transparent), 
                         url('https://images.unsplash.com/photo-1520527053876-aa266691c5d4?auto=format&fit=crop&w=1950&q=80');
-            background-size: cover; background-position: center;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            background-size: cover;
+            background-position: center;
         }
-        .hero-title { font-size: clamp(3rem, 10vw, 5rem); margin-bottom: 10px; }
-        .hero-subtitle { font-size: 1.1rem; color: var(--saphir-light); letter-spacing: 5px; }
+        .hero-big-text { font-size: clamp(4rem, 15vw, 12rem); font-family: 'Syncopate'; line-height: 0.8; margin-bottom: 40px; }
 
-        /* --- Sections Communes --- */
-        section { padding: 100px 10% 80px; }
-        .section-title { font-size: 2.2rem; margin-bottom: 50px; text-align: center; }
-        .section-title span { color: var(--saphir-primary); }
-
-        .btn-saphir {
-            padding: 12px 30px;
-            border: 2px solid var(--saphir-primary);
-            color: var(--text-white);
-            text-decoration: none;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            transition: var(--transition);
-            background: transparent;
-            display: inline-block;
-            margin-top: 20px;
+        /* --- BIO --- */
+        .bio-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
         }
-        .btn-saphir:hover { background: var(--saphir-primary); box-shadow: 0 0 15px var(--saphir-primary); }
+        .bio-text { font-size: 1.2rem; font-weight: 300; color: #ccc; max-width: 600px; }
+        .bio-text strong { color: var(--saphir-blue); }
 
-        /* --- Bio --- */
-        .bio-flex { display: flex; gap: 50px; align-items: center; flex-wrap: wrap; }
-        .bio-img { flex: 1; min-width: 300px; border: 1px solid var(--saphir-primary); padding: 10px; }
-        .bio-img img { width: 100%; filter: grayscale(20%); }
-        .bio-text { flex: 1.5; min-width: 300px; }
+        /* --- VIDEOS & PHOTOS --- */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            background: var(--grid-border);
+        }
+        .media-item { background: var(--bg-black); overflow: hidden; position: relative; }
+        .media-item img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); transition: 0.5s; }
+        .media-item:hover img { filter: grayscale(0%); transform: scale(1.05); }
+        
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; }
+        .video-wrapper iframe { position: absolute; top:0; left:0; width:100%; height:100%; border:0; }
 
-        /* --- Vidéos --- */
-        #videos { background: #010812; }
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; }
-        .video-item { position: relative; padding-bottom: 56.25%; height: 0; border: 1px solid #1a2a44; }
-        .video-item iframe { position: absolute; top:0; left:0; width:100%; height:100%; }
+        /* --- CONTACT --- */
+        .contact-flex { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 40px; }
+        .email-link { font-size: clamp(1.5rem, 5vw, 4rem); font-weight: 900; color: var(--text-main); text-decoration: none; border-bottom: 4px solid var(--saphir-blue); transition: 0.3s; }
+        .email-link:hover { color: var(--saphir-blue); }
 
-        /* --- Photos --- */
-        .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .photo-item { height: 300px; overflow: hidden; border: 1px solid #1a2a44; cursor: pointer; }
-        .photo-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
-        .photo-item:hover img { transform: scale(1.1); filter: brightness(1.2); }
-
-        /* --- Contact --- */
-        #contact { text-align: center; }
-        .contact-info { margin-bottom: 40px; font-size: 1.2rem; }
-        .socials a { color: var(--saphir-primary); font-size: 2.5rem; margin: 0 20px; transition: var(--transition); }
-        .socials a:hover { transform: translateY(-10px); color: var(--text-white); }
-
-        /* --- LE CLAVIER FIXE --- */
-        .piano-wrapper {
+        /* --- PIANO BAR (Style MusicFlex) --- */
+        .piano-fixed {
             position: fixed;
-            bottom: 0; left: 0; width: 100%;
-            height: 100px;
+            bottom: 0; right: 0;
+            width: calc(100% - 80px);
+            height: 60px;
             background: #000;
-            display: flex; justify-content: center;
-            z-index: 2000;
-            border-top: 4px solid var(--saphir-primary);
+            display: flex;
+            border-top: 1px solid var(--saphir-blue);
+            z-index: 900;
         }
-        .key { position: relative; width: 40px; height: 100%; background: #fff; border: 1px solid #ccc; border-radius: 0 0 4px 4px; cursor: pointer; transition: 0.1s; }
-        .key:active { background: var(--saphir-light); }
-        .key.black { width: 24px; height: 60%; background: #222; margin-left: -12px; margin-right: -12px; z-index: 2; border: none; }
-        .key.black:active { background: var(--saphir-primary); }
+        .piano-key { flex: 1; border-right: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; position: relative; }
+        .piano-key:hover { background: var(--saphir-blue); }
+        .piano-key.black { background: #111; height: 60%; flex: 0.6; z-index: 2; margin: 0 -0.3%; }
 
-        /* --- Mobile --- */
-        @media (max-width: 768px) {
-            nav { padding: 15px 20px; }
-            .nav-links { display: none; }
-            .video-grid { grid-template-columns: 1fr; }
-            .key { width: 30px; }
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            nav { width: 100%; height: 60px; flex-direction: row; padding: 0 20px; border-right: none; border-bottom: 1px solid var(--grid-border); }
+            .nav-logo { transform: rotate(0); }
+            .nav-links { writing-mode: horizontal-tb; transform: rotate(0); display: none; }
+            main { margin-left: 0; width: 100%; }
+            .grid-container { display: block; }
+            .bio-content, .media-grid { grid-template-columns: 1fr; }
+            .piano-fixed { width: 100%; }
         }
     </style>
 </head>
@@ -134,91 +152,99 @@
             <li><a href="#photos">Photos</a></li>
             <li><a href="#contact">Contact</a></li>
         </ul>
+        <div class="social-mini">
+            <a href="#" style="color:var(--text-main)"><i class="fab fa-instagram"></i></a>
+        </div>
     </nav>
 
-    <section id="accueil">
-        <h1 class="hero-title">Saphir Live</h1>
-        <p class="hero-subtitle">PIANISTE PROFESSIONNELLE</p>
-        <a href="#bio" class="btn-saphir">Entrer dans l'univers</a>
-    </section>
+    <main>
+        <section id="accueil">
+            <div class="hero-big-text">SAPHIR<br><span style="color:var(--saphir-blue)">LIVE</span></div>
+        </section>
 
-    <section id="bio">
-        <h2 class="section-title">Ma <span>Biographie</span></h2>
-        <div class="bio-flex">
-            <div class="bio-img">
-                <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&w=800&q=80" alt="Saphir">
+        <section id="bio">
+            <div class="section-header">
+                <span class="section-num">01</span>
+                <h2 class="section-title">Biographie</h2>
             </div>
-            <div class="bio-text">
-                <p>Bienvenue dans mon univers musical. Pianiste de formation classique, j'interprète les plus grandes œuvres avec une passion dévouée à l'émotion pure.</p>
-                <p>Découvrez à travers ce site mon parcours, mes interprétations vidéos et mon actualité artistique.</p>
-                <a href="#contact" class="btn-saphir">Me contacter</a>
+            <div class="bio-content">
+                <div class="bio-text">
+                    <p>Une approche brute et élégante du piano classique. <strong>Saphir</strong> redéfinit l'expérience du récital en fusionnant virtuosité technique et intensité scénique.</p>
+                </div>
+                <div class="bio-text">
+                    <p>Basée sur l'excellence, sa musique voyage entre les époques, du romantisme noir aux envolées contemporaines les plus sombres et bleutées.</p>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="videos">
-        <h2 class="section-title">Mes <span>Vidéos</span></h2>
-        <div class="video-grid">
-            <div class="video-item">
-                <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+        <section id="videos">
+            <div class="section-header">
+                <span class="section-num">02</span>
+                <h2 class="section-title">Vidéos</h2>
             </div>
-            <div class="video-item">
-                <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+            <div class="media-grid">
+                <div class="media-item">
+                    <div class="video-wrapper">
+                        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                    </div>
+                </div>
+                <div class="media-item">
+                    <div class="video-wrapper">
+                        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                    </div>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="photos">
-        <h2 class="section-title">Galerie <span>Photos</span></h2>
-        <div class="photo-grid">
-            <div class="photo-item"><img src="https://images.unsplash.com/photo-1520527053876-aa266691c5d4?auto=format&fit=crop&w=600&q=80" alt="Piano"></div>
-            <div class="photo-item"><img src="https://images.unsplash.com/photo-1465821185615-934289210b39?auto=format&fit=crop&w=600&q=80" alt="Concert"></div>
-            <div class="photo-item"><img src="https://images.unsplash.com/photo-1513883049090-d0b7439799bf?auto=format&fit=crop&w=600&q=80" alt="Saphir"></div>
-            <div class="photo-item"><img src="https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&w=600&q=80" alt="Mains"></div>
-        </div>
-    </section>
+        <section id="photos">
+            <div class="section-header">
+                <span class="section-num">03</span>
+                <h2 class="section-title">Photos</h2>
+            </div>
+            <div class="media-grid">
+                <div class="media-item"><img src="https://images.unsplash.com/photo-1520527053876-aa266691c5d4?auto=format&fit=crop&w=800&q=80" alt="Saphir"></div>
+                <div class="media-item"><img src="https://images.unsplash.com/photo-1513883049090-d0b7439799bf?auto=format&fit=crop&w=800&q=80" alt="Saphir"></div>
+                <div class="media-item"><img src="https://images.unsplash.com/photo-1465821185615-934289210b39?auto=format&fit=crop&w=800&q=80" alt="Saphir"></div>
+                <div class="media-item"><img src="https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&w=800&q=80" alt="Saphir"></div>
+            </div>
+        </section>
 
-    <section id="contact">
-        <h2 class="section-title">Me <span>Contacter</span></h2>
-        <div class="contact-info">
-            <p>Email : <a href="mailto:contact@saphir-live.fr" style="color:var(--saphir-primary); text-decoration:none;">contact@saphir-live.fr</a></p>
-        </div>
-        <div class="socials">
-            <a href="#"><i class="fab fa-instagram"></i></a>
-            <a href="#"><i class="fab fa-youtube"></i></a>
-            <a href="#"><i class="fab fa-facebook"></i></a>
-        </div>
-    </section>
+        <section id="contact">
+            <div class="section-header">
+                <span class="section-num">04</span>
+                <h2 class="section-title">Contact</h2>
+            </div>
+            <div class="contact-flex">
+                <a href="mailto:contact@saphir-live.fr" class="email-link">contact@saphir-live.fr</a>
+                <div class="socials">
+                    <p style="text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; margin-bottom: 10px;">Follow</p>
+                    <a href="#" style="color:var(--text-main); margin-right: 20px;"><i class="fab fa-youtube fa-2x"></i></a>
+                    <a href="#" style="color:var(--text-main)"><i class="fab fa-instagram fa-2x"></i></a>
+                </div>
+            </div>
+        </section>
 
-    <div class="piano-wrapper">
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div><div class="key black"></div>
-        <div class="key"></div>
+        <footer style="padding: 40px 5%; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: #444;">
+            &copy; 2026 SAPHIR LIVE / Brutalism Piano Design
+        </footer>
+    </main>
+
+    <div class="piano-fixed">
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div><div class="piano-key black"></div>
+        <div class="piano-key"></div>
     </div>
 
-    <script>
-        // Effet de scroll sur la navigation
-        window.onscroll = function() {
-            const nav = document.querySelector('nav');
-            if (window.pageYOffset > 50) {
-                nav.style.padding = "15px 50px";
-                nav.style.boxShadow = "0 4px 20px rgba(0, 114, 255, 0.2)";
-            } else {
-                nav.style.padding = "25px 50px";
-                nav.style.boxShadow = "none";
-            }
-        };
-    </script>
 </body>
 </html>
