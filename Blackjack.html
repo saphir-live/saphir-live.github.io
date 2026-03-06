@@ -3,40 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack Real-Time - Saphir Edition</title>
+    <title>Blackjack Real-Time - Saphir</title>
     <style>
-        :root { --green: #27ae60; --dark: #1a252f; --gold: #f1c40f; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--dark); color: white; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        
-        /* Setup Screen */
-        #setup { background: #2c3e50; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { padding: 10px; border-radius: 5px; border: none; width: 200px; margin-bottom: 10px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; transition: 0.3s; }
+        :root { --green: #27ae60; --dark: #1a252f; --gold: #f1c40f; --red: #e74c3c; }
+        body { font-family: sans-serif; background: var(--dark); color: white; text-align: center; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        #setup { background: #2c3e50; padding: 30px; border-radius: 15px; }
+        input { padding: 10px; border-radius: 5px; border: none; width: 200px; }
+        button { padding: 12px 24px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 5px; }
         #createGame { background: var(--green); color: white; }
-        #joinGame { background: var(--gold); color: black; }
-        button:hover { opacity: 0.8; transform: translateY(-2px); }
-
-        /* Game Board */
-        #game-board { display: none; }
-        .area { background: rgba(0,0,0,0.2); border: 2px solid var(--green); margin: 20px 0; padding: 15px; border-radius: 10px; position: relative; }
+        #joinGame { background: var(--gold); }
+        .area { background: rgba(0,0,0,0.2); border: 2px solid var(--green); margin: 20px 0; padding: 15px; border-radius: 10px; }
         #players-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .player-slot { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 1px solid transparent; }
-        .active-turn { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
-        
-        /* Cards */
-        .card { 
-            display: inline-block; background: white; color: black; 
-            width: 40px; height: 60px; line-height: 60px; 
-            margin: 5px; border-radius: 5px; font-weight: bold; 
-            font-size: 1.2rem; box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            animation: deal 0.5s ease-out;
-        }
-        .red { color: #e74c3c; }
-        @keyframes deal { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .controls { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
-        .btn-action { padding: 15px 30px; font-size: 1.1rem; }
+        .player-slot { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 2px solid transparent; }
+        .active-turn { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
+        .card { display: inline-block; background: white; color: black; width: 45px; height: 65px; line-height: 65px; margin: 5px; border-radius: 5px; font-weight: bold; font-size: 1.1rem; }
+        .card.red { color: var(--red); }
+        #timer-display { font-size: 1.5rem; color: var(--gold); font-weight: bold; margin: 10px; }
     </style>
 </head>
 <body>
@@ -44,41 +27,37 @@
 <div class="container">
     <div id="setup">
         <h1>♠️ Blackjack Multi</h1>
-        <p>Créez une session ou rejoignez un ami avec son ID.</p>
-        <input type="text" id="gameIdInput" placeholder="ID de la session (ex: a7b2)">
-        <br>
-        <button id="createGame">Nouvelle Partie</button>
+        <input type="text" id="gameIdInput" placeholder="ID Session">
+        <br><br>
+        <button id="createGame">Créer Partie (Lobby 2 min)</button>
         <button id="joinGame">Rejoindre</button>
     </div>
 
-    <div id="game-board">
-        <header style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Session: <span id="displayId" style="color:var(--gold)"></span></h3>
-            <div id="status-msg">Attente des joueurs...</div>
-        </header>
+    <div id="game-board" style="display:none;">
+        <div id="timer-display"></div>
+        <h3>Session: <span id="displayId" style="color:var(--gold)"></span></h3>
+        <div id="status-msg">En attente de joueurs...</div>
 
         <div id="dealer-area" class="area">
             <h4>Croupier</h4>
             <div id="dealer-cards"></div>
         </div>
 
-        <div id="players-container">
-            </div>
+        <div id="players-container"></div>
 
-        <div class="controls" id="player-controls">
-            <button id="hitBtn" class="btn-action" style="background:#3498db; color:white;">Tirer</button>
-            <button id="standBtn" class="btn-action" style="background:#e67e22; color:white;">Rester</button>
+        <div class="controls" id="player-controls" style="display:none; margin-top:20px;">
+            <button id="hitBtn" style="background:#3498db; color:white;">Tirer</button>
+            <button id="standBtn" style="background:#e67e22; color:white;">Rester</button>
         </div>
     </div>
 </div>
 
 <script type="module">
-    // Firebase Modular SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
-    // --- CONFIGURATION FIREBASE ---
-    const firebaseConfig = {
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
   apiKey: "AIzaSyBjpOfmZIBdEDGcoG_Hmkslqt68Cpv32OI",
   authDomain: "blackjack-5d51c.firebaseapp.com",
   databaseURL: "https://blackjack-5d51c-default-rtdb.firebaseio.com",
@@ -93,30 +72,38 @@
     const db = getDatabase(app);
 
     let currentGameId = null;
-    let mySlot = null; // p1, p2 ou p3
+    let mySlot = null;
 
-    // --- LOGIQUE JEU ---
+    const calculateScore = (cards) => {
+        let score = 0, aces = 0;
+        if(!cards) return 0;
+        cards.forEach(c => {
+            if (c.v === 'A') aces++;
+            else if (['J', 'Q', 'K'].includes(c.v)) score += 10;
+            else score += parseInt(c.v);
+        });
+        for (let i = 0; i < aces; i++) score += (score + 11 <= 21) ? 11 : 1;
+        return score;
+    };
+
     const createDeck = () => {
-        const suits = ['♥', '♦', '♣', '♠'];
-        const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+        const suits = ['♥', '♦', '♣', '♠'], values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
         let deck = [];
         suits.forEach(s => values.forEach(v => deck.push({v, s})));
         return deck.sort(() => Math.random() - 0.5);
     };
 
-    // --- INTERFACE ---
     document.getElementById('createGame').onclick = async () => {
         const id = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const endTime = Date.now() + 120000; // 2 minutes à partir de maintenant
         const deck = createDeck();
         const initialGame = {
-            id: id,
-            deck: deck,
-            turn: 'p1',
+            id, deck, turn: 'lobby', endTime,
             dealer: { cards: [deck.pop()] },
             players: {
-                p1: { name: "Joueur 1", cards: [deck.pop(), deck.pop()], active: true, status: 'playing' },
-                p2: { name: "Joueur 2", cards: [], active: false, status: 'waiting' },
-                p3: { name: "Joueur 3", cards: [], active: false, status: 'waiting' }
+                p1: { name: "Joueur 1", cards: [deck.pop(), deck.pop()], active: true },
+                p2: { name: "Joueur 2", cards: [], active: false },
+                p3: { name: "Joueur 3", cards: [], active: false }
             }
         };
         await set(ref(db, 'games/' + id), initialGame);
@@ -125,88 +112,108 @@
 
     document.getElementById('joinGame').onclick = () => {
         const id = document.getElementById('gameIdInput').value.toUpperCase();
-        if(!id) return alert("Entrez un ID");
-
-        onValue(ref(db, `games/${id}/players`), (snap) => {
-            const players = snap.val();
-            if (!players) return alert("Partie non trouvée");
-            
-            if (!players.p2.active) setupGameSession(id, 'p2');
-            else if (!players.p3.active) setupGameSession(id, 'p3');
-            else alert("Partie complète !");
+        onValue(ref(db, `games/${id}`), (snap) => {
+            const game = snap.val();
+            if (!game || game.turn !== 'lobby') return alert("Partie introuvable ou déjà lancée");
+            if (!game.players.p2.active) setupGameSession(id, 'p2');
+            else if (!game.players.p3.active) setupGameSession(id, 'p3');
+            else alert("Partie pleine");
         }, { onlyOnce: true });
     };
 
     function setupGameSession(id, slot) {
-        currentGameId = id;
-        mySlot = slot;
+        currentGameId = id; mySlot = slot;
         document.getElementById('setup').style.display = 'none';
         document.getElementById('game-board').style.display = 'block';
         document.getElementById('displayId').innerText = id;
 
-        // On active le joueur dans la DB
         if (slot !== 'p1') {
-            update(ref(db, `games/${id}/players/${slot}`), { 
-                active: true, 
-                cards: ['?', '?'] // Animation de cartes
-            });
+            onValue(ref(db, `games/${id}/deck`), (snap) => {
+                let deck = snap.val();
+                update(ref(db, `games/${id}`), { 
+                    deck, [`players/${slot}/active`]: true, [`players/${slot}/cards`]: [deck.pop(), deck.pop()] 
+                });
+            }, { onlyOnce: true });
         }
 
-        // Ecoute en temps réel
         onValue(ref(db, 'games/' + id), (snapshot) => {
             const data = snapshot.val();
-            if (data) render(data);
+            if (data) {
+                updateTimer(data);
+                render(data);
+                if (data.turn === 'dealer' && mySlot === 'p1') setTimeout(() => dealerPlay(data), 1000);
+            }
         });
+    }
+
+    function updateTimer(game) {
+        if (game.turn !== 'lobby') {
+            document.getElementById('timer-display').innerText = "";
+            return;
+        }
+        const timeLeft = Math.max(0, Math.floor((game.endTime - Date.now()) / 1000));
+        document.getElementById('timer-display').innerText = `Lancement dans : ${timeLeft}s`;
+
+        if (timeLeft <= 0 && mySlot === 'p1') {
+            update(ref(db, `games/${currentGameId}`), { turn: 'p1' });
+        }
+    }
+
+    async function dealerPlay(game) {
+        let deck = [...game.deck], cards = [...game.dealer.cards];
+        while (calculateScore(cards) < 17) cards.push(deck.pop());
+        await update(ref(db, `games/${currentGameId}`), { deck, 'dealer/cards': cards, turn: 'finished' });
     }
 
     function render(game) {
         const container = document.getElementById('players-container');
         container.innerHTML = '';
-        
-        // Croupier
-        document.getElementById('dealer-cards').innerHTML = game.dealer.cards.map(c => 
-            `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`
-        ).join('');
+        document.getElementById('dealer-cards').innerHTML = game.dealer.cards.map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('');
 
-        // Joueurs
         for (let key in game.players) {
             const p = game.players[key];
             if (p.active) {
-                const isMyTurn = game.turn === key;
+                const score = calculateScore(p.cards);
                 container.innerHTML += `
-                    <div class="player-slot ${isMyTurn ? 'active-turn' : ''}">
-                        <strong>${p.name} ${key === mySlot ? '(MOI)' : ''}</strong>
-                        <div>${p.cards.map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v ? c.v+c.s : '?'}</div>`).join('')}</div>
-                    </div>
-                `;
+                    <div class="player-slot ${game.turn === key ? 'active-turn' : ''}">
+                        <strong>${key === mySlot ? 'MOI' : p.name}</strong>
+                        <div>Score: ${score}</div>
+                        <div>${p.cards.map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('')}</div>
+                        ${score > 21 ? '<b style="color:red">BUST</b>' : ''}
+                    </div>`;
             }
         }
-
-        // Visibilité des contrôles
-        document.getElementById('player-controls').style.display = (game.turn === mySlot) ? 'flex' : 'none';
-        document.getElementById('status-msg').innerText = (game.turn === mySlot) ? "À vous de jouer !" : `Tour de ${game.turn}`;
+        document.getElementById('player-controls').style.display = (game.turn === mySlot) ? 'block' : 'none';
+        document.getElementById('status-msg').innerText = game.turn === 'lobby' ? "Attente des joueurs..." : (game.turn === 'finished' ? "Terminé !" : `Tour de ${game.turn}`);
     }
 
-    // --- ACTIONS ---
     document.getElementById('hitBtn').onclick = () => {
         onValue(ref(db, `games/${currentGameId}`), (snap) => {
             const data = snap.val();
-            const newCard = data.deck.pop();
-            const myCards = [...data.players[mySlot].cards, newCard];
-            
-            update(ref(db, `games/${currentGameId}`), {
-                deck: data.deck,
-                [`players/${mySlot}/cards`]: myCards
-            });
+            const cards = [...data.players[mySlot].cards, data.deck.pop()];
+            update(ref(db, `games/${currentGameId}`), { deck: data.deck, [`players/${mySlot}/cards`]: cards });
+            if (calculateScore(cards) > 21) document.getElementById('standBtn').onclick();
         }, { onlyOnce: true });
     };
 
     document.getElementById('standBtn').onclick = () => {
-        const nextTurn = mySlot === 'p1' ? 'p2' : (mySlot === 'p2' ? 'p3' : 'dealer');
-        update(ref(db, `games/${currentGameId}`), { turn: nextTurn });
+        onValue(ref(db, `games/${currentGameId}`), (snap) => {
+            const game = snap.val();
+            let next = 'dealer';
+            if (mySlot === 'p1' && game.players.p2.active) next = 'p2';
+            else if (mySlot === 'p2' && game.players.p3.active) next = 'p3';
+            update(ref(db, `games/${currentGameId}`), { turn: next });
+        }, { onlyOnce: true });
     };
 
+    // Rafraîchir le timer visuel localement
+    setInterval(() => {
+        if (currentGameId) {
+            onValue(ref(db, `games/${currentGameId}`), (snap) => {
+                if(snap.val()) updateTimer(snap.val());
+            }, {onlyOnce: true});
+        }
+    }, 1000);
 </script>
-
 </body>
 </html>
