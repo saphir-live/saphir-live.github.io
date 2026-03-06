@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rummikub Lite - Saphir Edition</title>
+    <style>
+        :root { --dark: #1a252f; --gold: #f1c40f; --blue: #3498db; --red: #e74c3c; --black: #2c3e50; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; }
+        .container { max-width: 1000px; margin: auto; }
+        
+        /* UI Tuiles */
+        .tile { 
+            display: inline-block; width: 40px; height: 55px; background: #fdfdfd; 
+            border-radius: 5px; color: black; font-weight: bold; font-size: 1.2rem;
+            line-height: 55px; margin: 3px; border-bottom: 3px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        .tile.red { color: var(--red); }
+        .tile.blue { color: var(--blue); }
+        .tile.gold { color: var(--gold); }
+        .tile.black { color: var(--black); }
+
+        #board { min-height: 200px; background: rgba(255,255,255,0.05); border: 2px dashed #555; padding: 15px; border-radius: 15px; margin: 20px 0; }
+        .set-container { display: inline-block; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 8px; margin: 5px; border: 1px solid #444; }
+        
+        #my-hand { background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 15px; border: 2px solid var(--blue); }
+        
+        #setup { background: #2c3e50; padding: 40px; border-radius: 15px; margin-top: 50px; }
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 5px; }
+        .btn-action { background: var(--gold); color: black; }
+        .btn-draw { background: var(--blue); color: white; }
+        
+        .active-turn { border: 3px solid var(--gold) !important; box-shadow: 0 0 15px var(--gold); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup">
+        <h1>🧩 Rummikub Lite</h1>
+        <button id="createGame" style="background: #27ae60; color:white;">Créer Session</button>
+        <button id="joinGame" style="background: var(--gold);">Rejoindre</button>
+    </div>
+
+    <div id="game-board" style="display:none;">
+        <div id="timer-display" style="color:var(--gold); font-size: 1.5rem;"></div>
+        <div id="status-msg">Attente...</div>
+
+        <h3>PLATEAU COMMUN</h3>
+        <div id="board"></div>
+
+        <h3>VOTRE MAIN</h3>
+        <div id="my-hand"></div>
+
+        <div id="controls" style="margin-top:20px; display:none;">
+            <button class="btn-draw" id="drawBtn">PIOCHER TUILLE</button>
+            <p style="font-size: 0.8rem;">Sélectionnez des tuiles dans votre main pour créer un groupe</p>
+            <button class="btn-action" id="playBtn">POSER SÉLECTION</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+    const firebaseConfig = { /* TES CLÉS ICI */ };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentGameId = null, mySlot = null;
+    let selectedTiles = [];
+
+    const createPool = () => {
+        const colors = ['red', 'blue', 'gold', 'black'];
+        let pool = [];
+        colors.forEach(c => {
+            for(let i=1; i<=13; i++) { pool.push({v: i, c: c}); pool.push({v: i, c: c}); }
+        });
+        return pool.sort(() => Math.random() - 0.5);
+    };
+
+    document.getElementById('createGame').onclick = async () => {
+        const id = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const pool = createPool();
+        const initial = {
+            id, pool, turn: 'lobby', createdAt: Date.now(), endTime: Date.now() + 60000,
+            board: [],
+            players: {
+                p1: { name: "Saphir", hand: pool.splice(0, 14), active: true },
+                p2: { active: false }, p3: { active: false }
+            }
+        };
+        await set(ref(db, 'rummi/' + id), initial);
+        setupSession(id, 'p1');
+    };
+
+    document.getElementById('joinGame').onclick = async () => {
+        const snap = await get(ref(db, 'rummi'));
+        const games = snap.val();
+        const oldest = Object.keys(games).find(id => games[id].turn === 'lobby');
+        if(oldest) {
+            let slot = !games[oldest].players.p2.active ? 'p2' : 'p3';
+            await update(ref(db, `rummi/${oldest}/players/${slot}`), { active: true, hand: games[oldest].pool.splice(0,14) });
+            setupSession(oldest, slot);
+        }
+    };
+
+    function setupSession(id, slot) {
+        currentGameId = id; mySlot = slot;
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('game-board').style.display = 'block';
+
+        onValue(ref(db, 'rummi/' + id), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            
+            if (data.turn === 'lobby') {
+                const sec = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
+                document.getElementById('timer-display').innerText = `Départ : ${sec}s`;
+                if(sec <= 0 && mySlot === 'p1') update(ref(db, `rummi/${id}`), { turn: 'p1' });
+            } else {
+                document.getElementById('timer-display').innerText = "";
+            }
+            render(data);
+        });
+    }
+
+    function render(game) {
+        // Rendu du plateau
+        const boardDiv = document.getElementById('board');
+        boardDiv.innerHTML = (game.board || []).map(set => `
+            <div class="set-container">
+                ${set.map(t => `<div class="tile ${t.c}">${t.v}</div>`).join('')}
+            </div>
+        `).join('');
+
+        // Rendu de ma main
+        const myHand = game.players[mySlot].hand || [];
+        const handDiv = document.getElementById('my-hand');
+        handDiv.className = game.turn === mySlot ? 'active-turn' : '';
+        handDiv.innerHTML = myHand.map((t, i) => `
+            <div class="tile ${t.c}" onclick="toggleSelect(${i})" 
+                 style="cursor:pointer; border:${selectedTiles.includes(i) ? '3px solid var(--gold)' : 'none'}">
+                ${t.v}
+            </div>
+        `).join('');
+
+        document.getElementById('controls').style.display = (game.turn === mySlot) ? 'block' : 'none';
+        document.getElementById('status-msg').innerText = `C'est le tour de ${game.turn}`;
+    }
+
+    window.toggleSelect = (index) => {
+        if(selectedTiles.includes(index)) selectedTiles = selectedTiles.filter(i => i !== index);
+        else selectedTiles.push(index);
+        get(ref(db, `rummi/${currentGameId}`)).then(s => render(s.val()));
+    };
+
+    document.getElementById('drawBtn').onclick = async () => {
+        const s = await get(ref(db, `rummi/${currentGameId}`));
+        const g = s.val();
+        const pool = [...g.pool];
+        const newTuile = pool.pop();
+        const newHand = [...g.players[mySlot].hand, newTuile];
+        let next = mySlot === 'p1' ? (g.players.p2.active ? 'p2' : 'p1') : (mySlot === 'p2' ? (g.players.p3.active ? 'p3' : 'p1') : 'p1');
+        
+        await update(ref(db, `rummi/${currentGameId}`), { 
+            pool, [`players/${mySlot}/hand`]: newHand, turn: next 
+        });
+        selectedTiles = [];
+    };
+
+    document.getElementById('playBtn').onclick = async () => {
+        if(selectedTiles.length < 3) return alert("Un groupe doit avoir au moins 3 tuiles !");
+        
+        const s = await get(ref(db, `rummi/${currentGameId}`));
+        const g = s.val();
+        const hand = [...g.players[mySlot].hand];
+        
+        // Extraire les tuiles choisies
+        const newSet = selectedTiles.map(i => hand[i]);
+        const updatedHand = hand.filter((_, i) => !selectedTiles.includes(i));
+        const updatedBoard = [...(g.board || []), newSet];
+
+        await update(ref(db, `rummi/${currentGameId}`), {
+            [`players/${mySlot}/hand`]: updatedHand,
+            board: updatedBoard
+        });
+        
+        selectedTiles = [];
+        if(updatedHand.length === 0) alert("RUMMIKUB ! Vous avez gagné !");
+    };
+
+</script>
+</body>
+  </html>
