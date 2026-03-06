@@ -79,11 +79,17 @@
     import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
     // --- CONFIGURATION FIREBASE ---
-    const firebaseConfig = {
-        apiKey: "VOTRE_API_KEY",
-        databaseURL: "VOTRE_DATABASE_URL",
-        projectId: "VOTRE_PROJECT_ID",
-    };
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBjpOfmZIBdEDGcoG_Hmkslqt68Cpv32OI",
+  authDomain: "blackjack-5d51c.firebaseapp.com",
+  databaseURL: "https://blackjack-5d51c-default-rtdb.firebaseio.com",
+  projectId: "blackjack-5d51c",
+  storageBucket: "blackjack-5d51c.firebasestorage.app",
+  messagingSenderId: "88848439981",
+  appId: "1:88848439981:web:cca38bc666edcb96438424",
+  measurementId: "G-0V519VE20M"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
