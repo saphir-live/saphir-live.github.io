@@ -6,55 +6,50 @@
     <title>Blackjack Real-Time - Saphir Edition</title>
     <style>
         :root { --green: #1e8449; --dark: #1a252f; --gold: #f1c40f; --red: #c0392b; --blue: #3498db; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--dark); color: white; margin: 0; padding: 10px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--dark); color: white; margin: 0; padding: 10px; text-align: center; }
         .container { max-width: 900px; margin: auto; position: relative; }
         
-        /* Score global en haut à droite */
-        #global-score { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--gold); color: var(--gold); font-weight: bold; z-index: 100; }
+        #global-score { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--gold); color: var(--gold); font-weight: bold; }
 
-        #setup { background: #2c3e50; padding: 40px; border-radius: 15px; margin-top: 50px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { padding: 12px; border-radius: 5px; border: none; width: 180px; font-size: 1rem; text-transform: uppercase; margin-bottom: 10px;}
+        #setup { background: #2c3e50; padding: 40px; border-radius: 15px; margin-top: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         button { padding: 12px 25px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; transition: 0.2s; font-size: 1rem; margin: 5px; }
         
         #createGame { background: var(--green); color: white; }
         #joinGame { background: var(--gold); color: black; }
         .btn-restart { background: var(--blue); color: white; display: none; margin: 20px auto; }
 
-        #game-board { display: none; text-align: center; }
-        #timer-display { font-size: 1.5rem; color: var(--gold); margin: 10px 0; }
+        #game-board { display: none; }
+        #timer-display { font-size: 1.5rem; color: var(--gold); margin: 10px 0; min-height: 1.6em; }
         .area { background: rgba(0,0,0,0.3); border: 2px solid var(--green); margin: 15px 0; padding: 15px; border-radius: 12px; }
         
         #players-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .player-slot { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 2px solid transparent; }
-        .active-turn { border-color: var(--gold); background: rgba(241, 196, 15, 0.1); }
+        .active-turn { border-color: var(--gold); background: rgba(241, 196, 15, 0.1); transform: scale(1.02); }
         
-        .card { display: inline-block; background: white; color: black; width: 45px; height: 65px; line-height: 65px; margin: 5px; border-radius: 6px; font-weight: bold; font-size: 1.2rem; box-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
+        .card { display: inline-block; background: white; color: black; width: 45px; height: 65px; line-height: 65px; margin: 5px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; box-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
         .card.red { color: var(--red); }
 
         .controls { margin-top: 20px; display: none; gap: 15px; justify-content: center; }
         .btn-hit { background: var(--blue); color: white; }
         .btn-stand { background: #e67e22; color: white; }
-        #results-overlay { margin-top: 20px; font-size: 1.5rem; font-weight: bold; color: var(--gold); }
+        #results-overlay { margin-top: 20px; font-size: 1.4rem; font-weight: bold; color: var(--gold); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="global-score">Victoires: <span id="win-count">0</span></div>
+    <div id="global-score">Wins: <span id="win-count">0</span></div>
 
     <div id="setup">
         <h1>♠️ Blackjack Multiplayer</h1>
-        <p>Rejoignez la partie la plus ancienne ou créez la vôtre.</p>
-        <div style="margin-top: 20px;">
-            <button id="createGame">Nouvelle Partie</button>
-            <button id="joinGame">Rejoindre une Partie</button>
-        </div>
-        <p style="font-size: 0.8rem; opacity: 0.6;">(ID Manuel possible via URL ou code si besoin)</p>
+        <p>Rejoignez la session active ou créez-en une.</p>
+        <button id="createGame">Nouvelle Partie</button>
+        <button id="joinGame">Rejoindre la plus ancienne</button>
     </div>
 
     <div id="game-board">
         <div id="timer-display"></div>
-        <div id="status-msg">Initialisation...</div>
+        <div id="status-msg">En attente...</div>
 
         <div id="dealer-area" class="area">
             <h4>CROUPIER</h4>
@@ -69,15 +64,16 @@
         </div>
 
         <div id="results-overlay"></div>
-        <button id="restartBtn" class="btn-restart">REJOUER (Même Session)</button>
-        <button onclick="location.reload()" class="btn-restart" style="display:inline-block; background:#7f8c8d">QUITTER</button>
+        <button id="restartBtn" class="btn-restart">REJOUER</button>
+        <button onclick="location.reload()" style="background:#7f8c8d; color:white;">QUITTER</button>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update, get, query, orderByChild } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
+    // --- CONFIGURATION FIREBASE ---
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBjpOfmZIBdEDGcoG_Hmkslqt68Cpv32OI",
@@ -95,8 +91,8 @@ const firebaseConfig = {
 
     let currentGameId = null;
     let mySlot = null;
-    let myWins = localStorage.getItem('bj_wins') || 0;
-    document.getElementById('win-count').innerText = myWins;
+    let wins = localStorage.getItem('bj_wins_saphir') || 0;
+    document.getElementById('win-count').innerText = wins;
 
     const calculateScore = (cards) => {
         if (!cards) return 0;
@@ -117,43 +113,39 @@ const firebaseConfig = {
         return deck.sort(() => Math.random() - 0.5);
     };
 
-    // --- REJOINDRE LA PLUS ANCIENNE ---
+    // --- REJOINDRE ---
     document.getElementById('joinGame').onclick = async () => {
-        const gamesRef = ref(db, 'games');
-        const snapshot = await get(gamesRef);
+        const snapshot = await get(ref(db, 'games'));
         if (snapshot.exists()) {
             const games = snapshot.val();
-            // Filtrer les sessions valides (< 2min et non pleines)
-            const validGames = Object.keys(games)
+            const oldestValid = Object.keys(games)
                 .map(id => ({ id, ...games[id] }))
                 .filter(g => g.turn === 'lobby' && (Date.now() - g.createdAt < 120000))
-                .sort((a, b) => a.createdAt - b.createdAt); // Plus ancienne en premier
+                .sort((a, b) => a.createdAt - b.createdAt)[0];
 
-            if (validGames.length > 0) {
-                const game = validGames[0];
-                let slot = !game.players.p2.active ? 'p2' : (!game.players.p3.active ? 'p3' : null);
+            if (oldestValid) {
+                let slot = !oldestValid.players.p2.active ? 'p2' : (!oldestValid.players.p3.active ? 'p3' : null);
                 if (slot) {
-                    await update(ref(db, `games/${game.id}/players/${slot}`), { active: true });
-                    setupSession(game.id, slot);
+                    await update(ref(db, `games/${oldestValid.id}/players/${slot}`), { active: true });
+                    setupSession(oldestValid.id, slot);
                     return;
                 }
             }
         }
-        alert("Aucune partie disponible. Créez-en une !");
+        alert("Aucune partie active trouvée.");
     };
 
+    // --- CREER ---
     document.getElementById('createGame').onclick = async () => {
         const id = Math.random().toString(36).substring(2, 6).toUpperCase();
         const deck = createDeck();
         const initialGame = {
-            id, deck, turn: 'lobby', 
-            createdAt: Date.now(),
-            endTime: Date.now() + 120000,
+            id, deck, turn: 'lobby', createdAt: Date.now(), endTime: Date.now() + 120000,
             dealer: { cards: [deck.pop()] },
             players: {
                 p1: { name: "Joueur 1", cards: [deck.pop(), deck.pop()], active: true },
-                p2: { name: "Joueur 2", cards: [], active: false },
-                p3: { name: "Joueur 3", cards: [], active: false }
+                p2: { name: "Joueur 2", cards: null, active: false },
+                p3: { name: "Joueur 3", cards: null, active: false }
             }
         };
         await set(ref(db, 'games/' + id), initialGame);
@@ -169,7 +161,7 @@ const firebaseConfig = {
             const data = snapshot.val();
             if (!data) return;
 
-            // P1 gère la distribution lobby
+            // P1 GERE LE LOBBY ET LE DEPART
             if (mySlot === 'p1' && data.turn === 'lobby') {
                 let deck = [...data.deck], updates = {}, changed = false;
                 ['p2', 'p3'].forEach(k => {
@@ -179,13 +171,17 @@ const firebaseConfig = {
                     }
                 });
                 if (changed) { updates['deck'] = deck; update(ref(db, 'games/' + id), updates); }
-                
+
+                // Timer : Lancement automatique
                 const sec = Math.max(0, Math.floor((data.endTime - Date.now()) / 1000));
                 if (sec <= 0) update(ref(db, 'games/' + id), { turn: 'p1' });
             }
 
-            if (data.turn === 'dealer' && mySlot === 'p1') setTimeout(() => dealerAI(data), 1000);
-            
+            // IA Croupier si c'est son tour
+            if (data.turn === 'dealer' && mySlot === 'p1') {
+                setTimeout(() => dealerAI(data), 1000);
+            }
+
             render(data);
         });
     }
@@ -197,15 +193,22 @@ const firebaseConfig = {
     }
 
     function render(game) {
-        // Timer
-        const sec = Math.max(0, Math.floor((game.endTime - Date.now()) / 1000));
-        document.getElementById('timer-display').innerText = game.turn === 'lobby' ? `Lancement : ${sec}s` : "";
+        // Status & Timer
+        if (game.turn === 'lobby') {
+            const sec = Math.max(0, Math.floor((game.endTime - Date.now()) / 1000));
+            document.getElementById('timer-display').innerText = `Lancement dans : ${sec}s`;
+            document.getElementById('status-msg').innerText = "Attente des joueurs...";
+        } else {
+            document.getElementById('timer-display').innerText = "";
+            document.getElementById('status-msg').innerText = game.turn === 'finished' ? "PARTIE TERMINÉE" : `TOUR : ${game.turn.toUpperCase()}`;
+        }
 
-        // Cards
+        // Dealer
         document.getElementById('dealer-cards').innerHTML = game.dealer.cards.map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('');
+
+        // Joueurs
         const container = document.getElementById('players-container');
         container.innerHTML = '';
-        
         for (let k in game.players) {
             const p = game.players[k];
             if (p.active) {
@@ -213,29 +216,31 @@ const firebaseConfig = {
                 container.innerHTML += `<div class="player-slot ${game.turn === k ? 'active-turn' : ''}">
                     <b>${k === mySlot ? 'VOUS' : p.name}</b><br>Score: ${score}
                     <div>${(p.cards || []).map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('')}</div>
+                    ${score > 21 ? '<div style="color:var(--red);font-weight:bold">BUST</div>' : ''}
                 </div>`;
             }
         }
 
-        // UI Logic
+        // Contrôles
         document.getElementById('player-controls').style.display = (game.turn === mySlot) ? 'flex' : 'none';
         
+        // Résultats finaux
         if (game.turn === 'finished') {
             const myScore = calculateScore(game.players[mySlot].cards);
             const dScore = calculateScore(game.dealer.cards);
-            let msg = "";
-            if (myScore > 21) msg = "BUST ! Perdu...";
+            let resultText = "";
+            if (myScore > 21) resultText = "PERDU (BUST)";
             else if (dScore > 21 || myScore > dScore) {
-                msg = "GAGNÉ ! 🎉";
-                if (!game.scoreRecorded?.[mySlot]) {
-                    myWins++; localStorage.setItem('bj_wins', myWins);
-                    document.getElementById('win-count').innerText = myWins;
-                    update(ref(db, `games/${game.id}/scoreRecorded/${mySlot}`), true);
+                resultText = "GAGNÉ ! 🎉";
+                if (!game.recorded?.[mySlot]) {
+                    wins++; localStorage.setItem('bj_wins_saphir', wins);
+                    document.getElementById('win-count').innerText = wins;
+                    update(ref(db, `games/${game.id}/recorded/${mySlot}`), true);
                 }
-            } else if (myScore === dScore) msg = "ÉGALITÉ";
-            else msg = "PERDU...";
-            
-            document.getElementById('results-overlay').innerText = msg;
+            } else if (myScore === dScore) resultText = "ÉGALITÉ";
+            else resultText = "PERDU...";
+
+            document.getElementById('results-overlay').innerText = resultText;
             document.getElementById('restartBtn').style.display = 'block';
         } else {
             document.getElementById('results-overlay').innerText = "";
@@ -243,37 +248,45 @@ const firebaseConfig = {
         }
     }
 
+    // --- ACTIONS JOUER ---
+    document.getElementById('hitBtn').onclick = async () => {
+        const snap = await get(ref(db, `games/${currentGameId}`));
+        const data = snap.val();
+        if (data.turn !== mySlot) return;
+        
+        const deck = [...data.deck];
+        const newCard = deck.pop();
+        const newCards = [...(data.players[mySlot].cards || []), newCard];
+        
+        await update(ref(db, `games/${currentGameId}`), { deck, [`players/${mySlot}/cards`]: newCards });
+        if (calculateScore(newCards) >= 21) document.getElementById('standBtn').click();
+    };
+
+    document.getElementById('standBtn').onclick = async () => {
+        const snap = await get(ref(db, `games/${currentGameId}`));
+        const game = snap.val();
+        if (game.turn !== mySlot) return;
+
+        let next = 'dealer';
+        if (mySlot === 'p1' && game.players.p2.active) next = 'p2';
+        else if (mySlot === 'p2' && game.players.p3.active) next = 'p3';
+
+        await update(ref(db, `games/${currentGameId}`), { turn: next });
+    };
+
     // --- REJOUER ---
     document.getElementById('restartBtn').onclick = async () => {
+        const snap = await get(ref(db, `games/${currentGameId}`));
+        const game = snap.val();
         const deck = createDeck();
-        const updates = {
-            deck: deck,
-            turn: 'p1',
-            'dealer/cards': [deck.pop()],
-            scoreRecorded: null
-        };
+        const updates = { deck, turn: 'p1', 'dealer/cards': [deck.pop()], recorded: null };
+        
         ['p1', 'p2', 'p3'].forEach(k => {
-            updates[`players/${k}/cards`] = [deck.pop(), deck.pop()];
+            if (game.players[k].active) updates[`players/${k}/cards`] = [deck.pop(), deck.pop()];
         });
-        update(ref(db, `games/${currentGameId}`), updates);
+        await update(ref(db, `games/${currentGameId}`), updates);
     };
 
-    document.getElementById('hitBtn').onclick = () => {
-        get(ref(db, `games/${currentGameId}`)).then(s => {
-            const data = s.val();
-            const cards = [...data.players[mySlot].cards, data.deck.pop()];
-            update(ref(db, `games/${currentGameId}`), { deck: data.deck, [`players/${mySlot}/cards`]: cards });
-            if (calculateScore(cards) >= 21) document.getElementById('standBtn').click();
-        });
-    };
-
-    document.getElementById('standBtn').onclick = () => {
-        get(ref(db, `games/${currentGameId}`)).then(s => {
-            const game = s.val();
-            let next = (mySlot === 'p1' && game.players.p2.active) ? 'p2' : ((mySlot === 'p2' && game.players.p3.active) ? 'p3' : 'dealer');
-            update(ref(db, `games/${currentGameId}`), { turn: next });
-        });
-    };
 </script>
 </body>
 </html>
