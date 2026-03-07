@@ -159,38 +159,66 @@
         const g = s.val();
         let updates = {};
 
-        if(type === 'fold') updates[`players/${mySlot}/folded`] = true;
+        // 1. Appliquer l'action actuelle
+        if(type === 'fold') {
+            updates[`players/${mySlot}/folded`] = true;
+            g.players[mySlot].folded = true; // Mise à jour locale pour le test suivant
+        }
         if(type === 'raise') {
             updates.pot = g.pot + 20;
             updates[`players/${mySlot}/chips`] = g.players[mySlot].chips - 20;
         }
 
-        // Logique de passage au tour suivant
-        let players = Object.keys(g.players).filter(k => g.players[k].active && !g.players[k].folded);
-        let currentIdx = players.indexOf(mySlot);
-        let next = players[(currentIdx + 1) % players.length];
+        // 2. Vérifier combien de joueurs ne sont PAS couchés
+        let activePlayers = Object.keys(g.players).filter(k => 
+            g.players[k].active && !g.players[k].folded
+        );
 
-        if(next === players[0]) { // Fin de tour -> Phase suivante
+        // --- RÈGLE DE VICTOIRE AUTOMATIQUE ---
+        if (activePlayers.length === 1) {
+            const winnerKey = activePlayers[0];
+            const winnerName = g.players[winnerKey].name;
+            updates.turn = 'finished';
+            updates.winner = `${winnerName} gagne le pot (tous les autres se sont couchés) !`;
+            updates[`players/${winnerKey}/chips`] = g.players[winnerKey].chips + (g.pot + (type === 'raise' ? 20 : 0));
+            updates.pot = 0;
+            
+            await update(ref(db, `poker_v2/${currentGameId}`), updates);
+            return;
+        }
+
+        // 3. Logique de passage au tour suivant (si plus d'un joueur reste)
+        let currentIdx = activePlayers.indexOf(mySlot);
+        let next = activePlayers[(currentIdx + 1) % activePlayers.length];
+
+        if(next === activePlayers[0]) { // Fin de tour de table
             let deck = [...g.deck], board = [...(g.board || [])];
-            if(g.phase === 'preflop') { board.push(deck.pop(), deck.pop(), deck.pop()); updates.phase = 'flop'; }
-            else if(g.phase === 'flop') { board.push(deck.pop()); updates.phase = 'turn'; }
-            else if(g.phase === 'turn') { board.push(deck.pop()); updates.phase = 'river'; }
+            let phase = g.phase;
+
+            if(phase === 'preflop') { board.push(deck.pop(), deck.pop(), deck.pop()); phase = 'flop'; }
+            else if(phase === 'flop') { board.push(deck.pop()); phase = 'turn'; }
+            else if(phase === 'turn') { board.push(deck.pop()); phase = 'river'; }
             else { 
-                // SHOWDOWN : Calcul du vainqueur
+                // SHOWDOWN (Fin de la River)
                 let best = { score: -1, player: '' };
-                players.forEach(p => {
+                activePlayers.forEach(p => {
                     let res = evaluateHand([...board, ...g.players[p].hand]);
                     if(res.score > best.score) best = { score: res.score, label: res.label, player: p };
                 });
                 updates.turn = 'finished';
                 updates.winner = `${g.players[best.player].name} gagne avec ${best.label} !`;
+                updates[`players/${best.player}/chips`] = g.players[best.player].chips + g.pot;
+                updates.pot = 0;
             }
-            updates.board = board; updates.deck = deck;
+            updates.board = board; 
+            updates.deck = deck;
+            updates.phase = phase;
             if(updates.turn !== 'finished') updates.turn = next;
         } else {
             updates.turn = next;
         }
-        update(ref(db, `poker_v2/${currentGameId}`), updates);
+
+        await update(ref(db, `poker_v2/${currentGameId}`), updates);
     };
 
     function render(g) {
