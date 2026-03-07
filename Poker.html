@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Texas Hold'em Pro - Saphir Edition</title>
+    <style>
+        :root { --felt: #1b5e20; --dark: #0a1118; --gold: #f1c40f; --red: #e74c3c; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; }
+        .container { max-width: 1000px; margin: auto; }
+        
+        #poker-table { 
+            background: var(--felt); border: 12px solid #3e2723; border-radius: 150px; 
+            min-height: 400px; margin: 20px 0; position: relative; padding: 20px;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.7);
+        }
+
+        .common-cards { margin-top: 120px; display: flex; justify-content: center; gap: 8px; height: 70px; }
+        .pot-display { font-size: 1.8rem; color: var(--gold); font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px black; }
+
+        .players-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 20px; }
+        .player-box { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 2px solid transparent; opacity: 0.6; }
+        .player-box.active-in-game { opacity: 1; border-color: #444; }
+        .active-turn { border-color: var(--gold) !important; transform: scale(1.05); }
+
+        .card { 
+            display: inline-block; width: 42px; height: 60px; background: white; 
+            color: black; border-radius: 4px; font-weight: bold; line-height: 60px;
+            margin: 2px; box-shadow: 1px 1px 3px rgba(0,0,0,0.5); font-size: 1rem;
+        }
+        .card.red { color: var(--red); }
+
+        #controls { background: #1c2833; padding: 20px; border-radius: 15px; margin-top: 15px; display: none; border: 1px solid #34495e; }
+        button { padding: 10px 18px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 5px; }
+        .btn-fold { background: #95a5a6; }
+        .btn-call { background: #2980b9; color: white; }
+        .btn-raise { background: #27ae60; color: white; }
+        #winner-msg { font-size: 1.5rem; color: var(--gold); margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="setup">
+        <h1>♠️ Saphir Texas Hold'em</h1>
+        <button onclick="createGame()" style="background:var(--gold); padding:15px 30px; font-size:1.2rem; border-radius:10px;">CRÉER UNE TABLE</button>
+        <button onclick="joinGame()" style="background:white; padding:15px 30px;">REJOINDRE</button>
+    </div>
+
+    <div id="game-board" style="display:none;">
+        <div id="poker-table">
+            <div class="pot-display">POT: <span id="pot-amount">0</span> $</div>
+            <div class="common-cards" id="community-cards"></div>
+            <div id="winner-msg"></div>
+        </div>
+
+        <div class="players-grid" id="players-list"></div>
+
+        <div id="controls">
+            <div style="margin-bottom:10px;">Votre main : <span id="my-hand-display"></span></div>
+            <button class="btn-fold" onclick="handleAction('fold')">SE COUCHER</button>
+            <button class="btn-call" onclick="handleAction('call')">CHECK / SUIVRE</button>
+            <button class="btn-raise" onclick="handleAction('raise')">RELANCER +20</button>
+        </div>
+        <button id="restartBtn" onclick="restartGame()" style="display:none; background:var(--gold); margin-top:10px;">NOUVELLE MANCHE</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+    const firebaseConfig = {
+    apiKey: "AIzaSyDzGQpgJWc3uyTWc8sAknpRLotZ2xJqpwo",
+    authDomain: "poker-60ff8.firebaseapp.com",
+    projectId: "poker-60ff8",
+    storageBucket: "poker-60ff8.firebasestorage.app",
+    messagingSenderId: "1076629757252",
+    appId: "1:1076629757252:web:6eacd268171fba348a8b11",
+    measurementId: "G-YFK09BKPEE"
+  };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentGameId = null, mySlot = null;
+    const values = "23456789TJQKA";
+    const valueMap = { 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+
+    // --- MOTEUR DE CALCUL DE MAIN ---
+    function evaluateHand(cards) {
+        const suits = cards.map(c => c.s);
+        const ranks = cards.map(c => valueMap[c.v] || parseInt(c.v)).sort((a,b) => b-a);
+        
+        const counts = {}; ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+        const freq = Object.values(counts).sort((a,b) => b-a);
+        const isFlush = Object.values(suits.reduce((a,s)=>{a[s]=(a[s]||0)+1; return a},{})).some(v => v >= 5);
+        
+        let uniqueRanks = [...new Set(ranks)];
+        let isStraight = false;
+        for(let i=0; i<=uniqueRanks.length-5; i++) {
+            if(uniqueRanks[i] - uniqueRanks[i+4] === 4) isStraight = true;
+        }
+
+        if(isFlush && isStraight) return { score: 8, label: "Quinte Flush" };
+        if(freq[0] === 4) return { score: 7, label: "Carré" };
+        if(freq[0] === 3 && freq[1] >= 2) return { score: 6, label: "Full House" };
+        if(isFlush) return { score: 5, label: "Couleur" };
+        if(isStraight) return { score: 4, label: "Quinte" };
+        if(freq[0] === 3) return { score: 3, label: "Brelan" };
+        if(freq[0] === 2 && freq[1] === 2) return { score: 2, label: "Double Paire" };
+        if(freq[0] === 2) return { score: 1, label: "Paire" };
+        return { score: 0, label: "Carte Haute" };
+    }
+
+    // --- ACTIONS FIREBASE ---
+    window.createGame = async () => {
+        const id = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const deck = [];
+        ['♥','♦','♣','♠'].forEach(s => "23456789TJQKA".split('').forEach(v => deck.push({v,s})));
+        deck.sort(() => Math.random() - 0.5);
+
+        const initial = {
+            id, deck, turn: 'p1', pot: 0, phase: 'preflop', board: [],
+            players: { p1: { active: true, name: "Saphir", chips: 1000, hand: [deck.pop(), deck.pop()], folded: false } }
+        };
+        for(let i=2; i<=8; i++) initial.players['p'+i] = { active: false };
+        
+        await set(ref(db, 'poker_v2/' + id), initial);
+        setupSession(id, 'p1');
+    };
+
+    window.joinGame = async () => {
+        const snap = await get(ref(db, 'poker_v2'));
+        if(!snap.exists()) return alert("Pas de table");
+        const games = snap.val();
+        const id = Object.keys(games)[0];
+        let slot = null;
+        for(let i=1; i<=8; i++) if(!games[id].players['p'+i].active) { slot = 'p'+i; break; }
+        
+        if(slot) {
+            let deck = [...games[id].deck];
+            await update(ref(db, `poker_v2/${id}/players/${slot}`), {
+                active: true, name: "Joueur "+slot[1], chips: 1000, hand: [deck.pop(), deck.pop()], folded: false
+            });
+            await update(ref(db, `poker_v2/${id}`), { deck });
+            setupSession(id, slot);
+        }
+    };
+
+    function setupSession(id, slot) {
+        currentGameId = id; mySlot = slot;
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('game-board').style.display = 'block';
+        onValue(ref(db, 'poker_v2/' + id), (s) => render(s.val()));
+    }
+
+    window.handleAction = async (type) => {
+        const s = await get(ref(db, `poker_v2/${currentGameId}`));
+        const g = s.val();
+        let updates = {};
+
+        if(type === 'fold') updates[`players/${mySlot}/folded`] = true;
+        if(type === 'raise') {
+            updates.pot = g.pot + 20;
+            updates[`players/${mySlot}/chips`] = g.players[mySlot].chips - 20;
+        }
+
+        // Logique de passage au tour suivant
+        let players = Object.keys(g.players).filter(k => g.players[k].active && !g.players[k].folded);
+        let currentIdx = players.indexOf(mySlot);
+        let next = players[(currentIdx + 1) % players.length];
+
+        if(next === players[0]) { // Fin de tour -> Phase suivante
+            let deck = [...g.deck], board = [...(g.board || [])];
+            if(g.phase === 'preflop') { board.push(deck.pop(), deck.pop(), deck.pop()); updates.phase = 'flop'; }
+            else if(g.phase === 'flop') { board.push(deck.pop()); updates.phase = 'turn'; }
+            else if(g.phase === 'turn') { board.push(deck.pop()); updates.phase = 'river'; }
+            else { 
+                // SHOWDOWN : Calcul du vainqueur
+                let best = { score: -1, player: '' };
+                players.forEach(p => {
+                    let res = evaluateHand([...board, ...g.players[p].hand]);
+                    if(res.score > best.score) best = { score: res.score, label: res.label, player: p };
+                });
+                updates.turn = 'finished';
+                updates.winner = `${g.players[best.player].name} gagne avec ${best.label} !`;
+            }
+            updates.board = board; updates.deck = deck;
+            if(updates.turn !== 'finished') updates.turn = next;
+        } else {
+            updates.turn = next;
+        }
+        update(ref(db, `poker_v2/${currentGameId}`), updates);
+    };
+
+    function render(g) {
+        if(!g) return;
+        document.getElementById('pot-amount').innerText = g.pot;
+        document.getElementById('community-cards').innerHTML = (g.board || []).map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('');
+        
+        const list = document.getElementById('players-list');
+        list.innerHTML = '';
+        for(let k in g.players) {
+            const p = g.players[k];
+            if(p.active) {
+                list.innerHTML += `<div class="player-box active-in-game ${g.turn === k ? 'active-turn' : ''}">
+                    <b>${p.name}</b><br>${p.chips} $<br>${p.folded ? 'COUCHÉ' : (g.turn==='finished' ? '🎴🎴' : '??')}
+                </div>`;
+            }
+        }
+
+        document.getElementById('my-hand-display').innerHTML = g.players[mySlot].hand.map(c => `<div class="card ${'♥♦'.includes(c.s) ? 'red' : ''}">${c.v}${c.s}</div>`).join('');
+        document.getElementById('controls').style.display = (g.turn === mySlot && !g.players[mySlot].folded) ? 'block' : 'none';
+        document.getElementById('winner-msg').innerText = g.winner || "";
+        document.getElementById('restartBtn').style.display = (g.turn === 'finished' && mySlot === 'p1') ? 'inline-block' : 'none';
+    }
+
+    window.restartGame = async () => {
+        const id = currentGameId;
+        const deck = [];
+        ['♥','♦','♣','♠'].forEach(s => "23456789TJQKA".split('').forEach(v => deck.push({v,s})));
+        deck.sort(() => Math.random() - 0.5);
+        
+        const snap = await get(ref(db, 'poker_v2/' + id));
+        const g = snap.val();
+        let up = { deck, board: [], phase: 'preflop', turn: 'p1', pot: 0, winner: "" };
+        for(let k in g.players) if(g.players[k].active) {
+            up[`players/${k}/hand`] = [deck.pop(), deck.pop()];
+            up[`players/${k}/folded`] = false;
+        }
+        update(ref(db, 'poker_v2/' + id), up);
+    };
+</script>
+</body>
+  </html>
