@@ -58,29 +58,30 @@
 </div>
 
 <script type="module">
+    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
     const firebaseConfig = {
-    apiKey: "AIzaSyA5xc8THo-5iXtwayET8nWRKGWnEDN1BSI",
-    authDomain: "bataille-navale-697a2.firebaseapp.com",
-    databaseURL: "https://bataille-navale-697a2-default-rtdb.firebaseio.com",
-    projectId: "bataille-navale-697a2",
-    storageBucket: "bataille-navale-697a2.firebasestorage.app",
-    messagingSenderId: "544045974215",
-    appId: "1:544045974215:web:f3a403c23c9494a4b9b4e2",
-    measurementId: "G-0CGZYRMKSN"
-  };
+  apiKey: "AIzaSyA5xc8THo-5iXtwayET8nWRKGWnEDN1BSI",
+  authDomain: "bataille-navale-697a2.firebaseapp.com",
+  databaseURL: "https://bataille-navale-697a2-default-rtdb.firebaseio.com",
+  projectId: "bataille-navale-697a2",
+  storageBucket: "bataille-navale-697a2.firebasestorage.app",
+  messagingSenderId: "544045974215",
+  appId: "1:544045974215:web:871c3f52755b8f59b9b4e2",
+  measurementId: "G-WK2MCMC9DQ"
+};
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let currentGameId = null, mySlot = null, myShips = [], myHits = [], enemyShots = [], timerInt = null;
+    let currentGameId = null, mySlot = null, myShips = [], timerInt = null;
+    const TOTAL_REQUIRED = 17; // 5 + 4 + 3 + 3 + 2
 
-    // --- INITIALISATION ---
     window.createSession = async () => {
         const id = Math.random().toString(36).substring(2, 6).toUpperCase();
         await set(ref(db, 'naval/' + id), {
-            id, turn: 'placement', startTime: 0,
+            id, turn: 'placement', startTime: 0, phase: 'setup',
             p1: { active: true, ready: false, ships: [], shots: [] },
             p2: { active: false, ready: false, ships: [], shots: [] }
         });
@@ -109,6 +110,7 @@
     function createGrids() {
         const myGrid = document.getElementById('my-grid');
         const enemyGrid = document.getElementById('enemy-grid');
+        myGrid.innerHTML = ''; enemyGrid.innerHTML = '';
         for(let i=0; i<100; i++) {
             let m = document.createElement('div'); m.className = 'cell';
             m.onclick = () => placeShip(i);
@@ -120,34 +122,48 @@
         }
     }
 
-    // --- PHASE PLACEMENT ---
     function placeShip(idx) {
-        if(myShips.includes(idx)) myShips = myShips.filter(s => s !== idx);
-        else if(myShips.length < 5) myShips.push(idx);
-        
-        document.getElementById('readyBtn').disabled = myShips.length !== 5;
-        document.getElementById('readyBtn').innerText = `PRÊT (${myShips.length}/5)`;
-        drawMyGrid();
+        // On ne peut placer que durant la phase de setup
+        get(ref(db, `naval/${currentGameId}`)).then(s => {
+            if(s.val().phase !== 'setup' || s.val()[mySlot].ready) return;
+
+            if(myShips.includes(idx)) myShips = myShips.filter(s => s !== idx);
+            else if(myShips.length < TOTAL_REQUIRED) myShips.push(idx);
+            
+            const btn = document.getElementById('readyBtn');
+            btn.disabled = myShips.length !== TOTAL_REQUIRED;
+            btn.innerText = `PRÊT (${myShips.length}/${TOTAL_REQUIRED})`;
+            drawLocalGrid();
+        });
+    }
+
+    // Dessin immédiat pour le placement fluide
+    function drawLocalGrid() {
+        const cells = document.getElementById('my-grid').children;
+        for(let i=0; i<100; i++) {
+            cells[i].classList.toggle('ship', myShips.includes(i));
+        }
     }
 
     window.confirmPlacement = async () => {
         await update(ref(db, `naval/${currentGameId}/${mySlot}`), { ships: myShips, ready: true });
-        document.getElementById('placement-ui').style.display = 'none';
+        document.getElementById('placement-ui').innerHTML = "<p>En attente de l'adversaire...</p>";
     };
 
-    // --- PHASE DE JEU ---
     async function fireShot(idx) {
         const s = await get(ref(db, `naval/${currentGameId}`));
         const g = s.val();
         if(g.turn !== mySlot || g.phase !== 'battle') return;
+        
+        const myShots = g[mySlot].shots || [];
+        if(myShots.includes(idx)) return; // Déjà tiré ici
 
         const enemySlot = mySlot === 'p1' ? 'p2' : 'p1';
-        const shots = [...(g[mySlot].shots || []), idx];
-        const nextTurn = enemySlot;
+        const shots = [...myShots, idx];
 
         await update(ref(db, `naval/${currentGameId}`), { 
             [`${mySlot}/shots`]: shots, 
-            turn: nextTurn,
+            turn: enemySlot,
             startTime: Date.now() 
         });
     }
@@ -156,56 +172,53 @@
         if(!g) return;
         const enemySlot = mySlot === 'p1' ? 'p2' : 'p1';
         
-        // Démarrage de la bataille
-        if(g.p1.ready && g.p2.ready && g.turn === 'placement') {
+        // Activation de la bataille
+        if(g.p1.ready && g.p2.ready && g.phase === 'setup') {
             update(ref(db, `naval/${currentGameId}`), { turn: 'p1', phase: 'battle', startTime: Date.now() });
             return;
         }
 
-        // Timer
+        // Timer de 30s
         if(g.phase === 'battle') {
+            document.getElementById('placement-ui').style.display = 'none';
             clearInterval(timerInt);
             timerInt = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - g.startTime) / 1000);
                 const remain = Math.max(0, 30 - elapsed);
                 document.getElementById('timer').innerText = remain;
-                if(remain === 0 && g.turn === mySlot) { // Temps écoulé : on passe le tour
+                if(remain === 0 && g.turn === mySlot) {
                     update(ref(db, `naval/${currentGameId}`), { turn: enemySlot, startTime: Date.now() });
                 }
             }, 1000);
-            document.getElementById('status-msg').innerText = g.turn === mySlot ? "À VOUS DE TIRER !" : "ATTENTE DE L'ADVERSAIRE...";
+            document.getElementById('status-msg').innerText = g.turn === mySlot ? "À VOUS DE TIRER !" : "L'ENNEMI RÉFLÉCHIT...";
         }
 
-        drawMyGrid(g[mySlot].ships, g[enemySlot].shots);
-        drawEnemyGrid(g[mySlot].shots, g[enemySlot].ships);
+        // Mise à jour visuelle des grilles
+        const myGridCells = document.getElementById('my-grid').children;
+        const enemyGridCells = document.getElementById('enemy-grid').children;
+        const myShots = g[mySlot].shots || [];
+        const enemyShots = g[enemySlot].shots || [];
+        const myShipsFromDB = g[mySlot].ships || [];
+        const enemyShipsFromDB = g[enemySlot].ships || [];
 
-        // Victoire
+        for(let i=0; i<100; i++) {
+            // Ma Grille
+            myGridCells[i].className = 'cell';
+            if(myShipsFromDB.includes(i)) myGridCells[i].classList.add('ship');
+            if(enemyShots.includes(i)) myGridCells[i].classList.add(myShipsFromDB.includes(i) ? 'hit' : 'miss');
+
+            // Grille Ennemie
+            enemyGridCells[i].className = 'cell';
+            if(myShots.includes(i)) enemyGridCells[i].classList.add(enemyShipsFromDB.includes(i) ? 'hit' : 'miss');
+        }
+
+        // Vérification Victoire (17 touches)
         if(g.phase === 'battle') {
-            const myHits = (g[mySlot].shots || []).filter(s => g[enemySlot].ships.includes(s));
-            const enemyHits = (g[enemySlot].shots || []).filter(s => g[mySlot].ships.includes(s));
-            if(myHits.length === 5) { alert("GAGNÉ !"); location.reload(); }
-            if(enemyHits.length === 5) { alert("PERDU..."); location.reload(); }
-        }
-    }
-
-    function drawMyGrid(ships = myShips, enemyShots = []) {
-        const cells = document.getElementById('my-grid').children;
-        for(let i=0; i<100; i++) {
-            cells[i].className = 'cell';
-            if(ships.includes(i)) cells[i].classList.add('ship');
-            if(enemyShots.includes(i)) {
-                cells[i].classList.add(ships.includes(i) ? 'hit' : 'miss');
-            }
-        }
-    }
-
-    function drawEnemyGrid(myShots = [], enemyShips = []) {
-        const cells = document.getElementById('enemy-grid').children;
-        for(let i=0; i<100; i++) {
-            cells[i].className = 'cell';
-            if(myShots.includes(i)) {
-                cells[i].classList.add(enemyShips.includes(i) ? 'hit' : 'miss');
-            }
+            const hitsOnEnemy = myShots.filter(s => enemyShipsFromDB.includes(s)).length;
+            const hitsOnMe = enemyShots.filter(s => myShipsFromDB.includes(s)).length;
+            
+            if(hitsOnEnemy === TOTAL_REQUIRED) { alert("VICTOIRE ! Flotte ennemie coulée."); location.reload(); }
+            else if(hitsOnMe === TOTAL_REQUIRED) { alert("DÉFAITE... Votre flotte a sombré."); location.reload(); }
         }
     }
 </script>
