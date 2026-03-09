@@ -1,64 +1,78 @@
-<!DOCTYPE html>
+
+            <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bataille Navale Real-Time - Saphir Edition</title>
+    <title>Bataille Navale Tactique - Saphir</title>
     <style>
-        :root { --water: #2980b9; --ship: #7f8c8d; --hit: #e74c3c; --miss: #ecf0f1; --dark: #2c3e50; }
+        :root { --water: #2980b9; --ship: #7f8c8d; --hit: #e74c3c; --miss: #ecf0f1; --dark: #1a252f; --gold: #f1c40f; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 10px; }
-        .grid-container { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin-top: 20px; }
+        .grid-container { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; margin-top: 20px; }
         
-        .grid { display: grid; grid-template-columns: repeat(10, 30px); grid-template-rows: repeat(10, 30px); gap: 2px; background: #34495e; padding: 5px; border-radius: 5px; }
-        .cell { width: 30px; height: 30px; background: var(--water); cursor: pointer; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(10, 32px); grid-template-rows: repeat(10, 32px); gap: 1px; background: #34495e; border: 2px solid #555; }
+        .cell { width: 32px; height: 32px; background: var(--water); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s; }
+        .cell:hover { opacity: 0.8; background: #3498db; }
         
-        .cell.ship { background: var(--ship); border: 1px solid #bdc3c7; }
+        .cell.ship { background: var(--ship); border: 1px solid #eee; }
         .cell.hit { background: var(--hit); color: white; }
-        .cell.miss { background: var(--miss); color: var(--dark); }
-        .cell.miss::after { content: "•"; }
+        .cell.miss { background: var(--miss); }
+        .cell.miss::after { content: "•"; color: #2c3e50; font-size: 20px; }
 
-        #timer { font-size: 2rem; color: #f1c40f; font-weight: bold; margin: 10px 0; }
-        #status-msg { font-size: 1.2rem; margin: 10px; color: #bdc3c7; }
+        #setup-controls { background: #2c3e50; padding: 20px; border-radius: 12px; max-width: 500px; margin: 20px auto; border: 1px solid #444; }
+        .ship-btn { padding: 8px 12px; margin: 5px; border: 1px solid var(--gold); background: transparent; color: var(--gold); cursor: pointer; border-radius: 4px; }
+        .ship-btn.active { background: var(--gold); color: black; }
+        .ship-btn.placed { opacity: 0.3; border-color: #7f8c8d; color: #7f8c8d; cursor: default; }
+
+        button#readyBtn { background: #27ae60; color: white; padding: 15px 30px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px; }
+        button#readyBtn:disabled { background: #7f8c8d; opacity: 0.5; }
         
-        .setup-controls { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; background: #27ae60; color: white; }
-        button:disabled { background: #7f8c8d; cursor: not-allowed; }
-        
-        .turn-indicator { padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; }
-        .my-turn { background: #27ae60; color: white; }
+        #timer { font-size: 2.5rem; color: var(--gold); font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="setup-screen">
-    <h1>🚢 Bataille Navale</h1>
-    <button onclick="createSession()">Créer une Bataille</button>
-    <button onclick="joinSession()" style="background:#f39c12">Rejoindre</button>
+<div id="lobby">
+    <h1>🚢 Bataille Navale Pro</h1>
+    <button onclick="createSession()" style="padding:15px 30px; background:var(--gold); border:none; border-radius:5px; font-weight:bold; cursor:pointer;">CRÉER UNE SESSION</button>
+    <button onclick="joinSession()" style="padding:15px 30px; margin-left:10px;">REJOINDRE</button>
 </div>
 
 <div id="game-screen" style="display:none;">
     <div id="timer">30</div>
-    <div id="status-msg">Placez vos navires (5 cases)</div>
-    
-    <div class="setup-controls" id="placement-ui">
-        <p>Cliquez sur 5 cases de votre grille pour placer votre flotte.</p>
-        <button id="readyBtn" onclick="confirmPlacement()" disabled>PRÊT (0/5)</button>
+    <div id="status-msg">Phase de préparation</div>
+
+    <div id="setup-controls">
+        <h3>FLOTTE À PLACER</h3>
+        <div id="ship-list">
+            <button class="ship-btn" onclick="selectShip(5, this)">Porte-avions (5)</button>
+            <button class="ship-btn" onclick="selectShip(4, this)">Croiseur (4)</button>
+            <button class="ship-btn" onclick="selectShip(3, this)">Contre-torpilleur (3)</button>
+            <button class="ship-btn" onclick="selectShip(3, this)">Sous-marin (3)</button>
+            <button class="ship-btn" onclick="selectShip(2, this)">Torpilleur (2)</button>
+        </div>
+        <p>Orientation : 
+            <label><input type="radio" name="dir" value="H" checked> Horizontal</label>
+            <label><input type="radio" name="dir" value="V"> Vertical</label>
+        </p>
+        <button id="resetPlacement" onclick="resetShips()" style="background:#c0392b; color:white; padding:5px 10px; border:none; border-radius:3px; cursor:pointer;">Réinitialiser</button>
+        <br>
+        <button id="readyBtn" onclick="confirmPlacement()" disabled>VALIDER LA FLOTTE</button>
     </div>
 
     <div class="grid-container">
         <div>
-            <h3>MA GRILLE</h3>
+            <h4>MA FLOTTE</h4>
             <div id="my-grid" class="grid"></div>
         </div>
         <div>
-            <h3>RADAR ENNEMI</h3>
+            <h4>RADAR ENNEMI</h4>
             <div id="enemy-grid" class="grid"></div>
         </div>
     </div>
 </div>
 
 <script type="module">
-    
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
     import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
@@ -75,13 +89,58 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let currentGameId = null, mySlot = null, myShips = [], timerInt = null;
-    const TOTAL_REQUIRED = 17; // 5 + 4 + 3 + 3 + 2
+    let currentGameId, mySlot, selectedSize = 0, currentBtn = null, myShips = [], placedCount = 0;
 
+    // --- LOGIQUE DE PLACEMENT ---
+    window.selectShip = (size, btn) => {
+        if(btn.classList.contains('placed')) return;
+        selectedSize = size;
+        if(currentBtn) currentBtn.classList.remove('active');
+        currentBtn = btn;
+        btn.classList.add('active');
+    };
+
+    function placeShipOnGrid(startIdx) {
+        if(selectedSize === 0 || !currentBtn) return;
+        
+        const isHoriz = document.querySelector('input[name="dir"]:checked').value === 'H';
+        const row = Math.floor(startIdx / 10);
+        const col = startIdx % 10;
+        let newShipCells = [];
+
+        for(let i=0; i < selectedSize; i++) {
+            let r = isHoriz ? row : row + i;
+            let c = isHoriz ? col + i : col;
+            
+            // Vérification limites et collisions
+            if(r > 9 || c > 9 || myShips.includes(r * 10 + c)) {
+                alert("Placement impossible !"); return;
+            }
+            newShipCells.push(r * 10 + c);
+        }
+
+        myShips = [...myShips, ...newShipCells];
+        currentBtn.classList.add('placed');
+        currentBtn.classList.remove('active');
+        selectedSize = 0;
+        placedCount++;
+        
+        if(placedCount === 5) document.getElementById('readyBtn').disabled = false;
+        drawGrids();
+    }
+
+    window.resetShips = () => {
+        myShips = []; placedCount = 0;
+        document.querySelectorAll('.ship-btn').forEach(b => b.classList.remove('placed', 'active'));
+        document.getElementById('readyBtn').disabled = true;
+        drawGrids();
+    };
+
+    // --- FIREBASE & JEU ---
     window.createSession = async () => {
         const id = Math.random().toString(36).substring(2, 6).toUpperCase();
-        await set(ref(db, 'naval/' + id), {
-            id, turn: 'placement', startTime: 0, phase: 'setup',
+        await set(ref(db, 'naval_pro/' + id), {
+            id, turn: 'placement', phase: 'setup', startTime: 0,
             p1: { active: true, ready: false, ships: [], shots: [] },
             p2: { active: false, ready: false, ships: [], shots: [] }
         });
@@ -89,138 +148,90 @@
     };
 
     window.joinSession = async () => {
-        const snap = await get(ref(db, 'naval'));
-        if(!snap.exists()) return alert("Aucune session");
+        const snap = await get(ref(db, 'naval_pro'));
         const games = snap.val();
         const id = Object.keys(games).find(k => !games[k].p2.active);
         if(id) {
-            await update(ref(db, `naval/${id}/p2`), { active: true, ready: false, ships: [], shots: [] });
+            await update(ref(db, `naval_pro/${id}/p2`), { active: true, ready: false, ships: [], shots: [] });
             startApp(id, 'p2');
         }
     };
 
     function startApp(id, slot) {
         currentGameId = id; mySlot = slot;
-        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('lobby').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
-        createGrids();
-        onValue(ref(db, 'naval/' + id), (s) => sync(s.val()));
+        initGrids();
+        onValue(ref(db, 'naval_pro/' + id), (s) => sync(s.val()));
     }
 
-    function createGrids() {
-        const myGrid = document.getElementById('my-grid');
-        const enemyGrid = document.getElementById('enemy-grid');
-        myGrid.innerHTML = ''; enemyGrid.innerHTML = '';
+    function initGrids() {
+        const myG = document.getElementById('my-grid');
+        const enG = document.getElementById('enemy-grid');
         for(let i=0; i<100; i++) {
             let m = document.createElement('div'); m.className = 'cell';
-            m.onclick = () => placeShip(i);
-            myGrid.appendChild(m);
-
+            m.onclick = () => placeShipOnGrid(i);
+            myG.appendChild(m);
             let e = document.createElement('div'); e.className = 'cell';
             e.onclick = () => fireShot(i);
-            enemyGrid.appendChild(e);
-        }
-    }
-
-    function placeShip(idx) {
-        // On ne peut placer que durant la phase de setup
-        get(ref(db, `naval/${currentGameId}`)).then(s => {
-            if(s.val().phase !== 'setup' || s.val()[mySlot].ready) return;
-
-            if(myShips.includes(idx)) myShips = myShips.filter(s => s !== idx);
-            else if(myShips.length < TOTAL_REQUIRED) myShips.push(idx);
-            
-            const btn = document.getElementById('readyBtn');
-            btn.disabled = myShips.length !== TOTAL_REQUIRED;
-            btn.innerText = `PRÊT (${myShips.length}/${TOTAL_REQUIRED})`;
-            drawLocalGrid();
-        });
-    }
-
-    // Dessin immédiat pour le placement fluide
-    function drawLocalGrid() {
-        const cells = document.getElementById('my-grid').children;
-        for(let i=0; i<100; i++) {
-            cells[i].classList.toggle('ship', myShips.includes(i));
+            enG.appendChild(e);
         }
     }
 
     window.confirmPlacement = async () => {
-        await update(ref(db, `naval/${currentGameId}/${mySlot}`), { ships: myShips, ready: true });
-        document.getElementById('placement-ui').innerHTML = "<p>En attente de l'adversaire...</p>";
+        await update(ref(db, `naval_pro/${currentGameId}/${mySlot}`), { ships: myShips, ready: true });
+        document.getElementById('setup-controls').innerHTML = "<h3>Flotte prête. En attente de l'adversaire...</h3>";
     };
 
     async function fireShot(idx) {
-        const s = await get(ref(db, `naval/${currentGameId}`));
+        const s = await get(ref(db, `naval_pro/${currentGameId}`));
         const g = s.val();
-        if(g.turn !== mySlot || g.phase !== 'battle') return;
-        
-        const myShots = g[mySlot].shots || [];
-        if(myShots.includes(idx)) return; // Déjà tiré ici
+        if(g.turn !== mySlot || g.phase !== 'battle' || (g[mySlot].shots || []).includes(idx)) return;
 
-        const enemySlot = mySlot === 'p1' ? 'p2' : 'p1';
-        const shots = [...myShots, idx];
-
-        await update(ref(db, `naval/${currentGameId}`), { 
-            [`${mySlot}/shots`]: shots, 
-            turn: enemySlot,
-            startTime: Date.now() 
+        const enemy = mySlot === 'p1' ? 'p2' : 'p1';
+        const shots = [...(g[mySlot].shots || []), idx];
+        await update(ref(db, `naval_pro/${currentGameId}`), { 
+            [`${mySlot}/shots`]: shots, turn: enemy, startTime: Date.now() 
         });
     }
 
     function sync(g) {
         if(!g) return;
-        const enemySlot = mySlot === 'p1' ? 'p2' : 'p1';
-        
-        // Activation de la bataille
+        const enemy = mySlot === 'p1' ? 'p2' : 'p1';
         if(g.p1.ready && g.p2.ready && g.phase === 'setup') {
-            update(ref(db, `naval/${currentGameId}`), { turn: 'p1', phase: 'battle', startTime: Date.now() });
+            update(ref(db, `naval_pro/${currentGameId}`), { turn: 'p1', phase: 'battle', startTime: Date.now() });
             return;
         }
 
-        // Timer de 30s
         if(g.phase === 'battle') {
-            document.getElementById('placement-ui').style.display = 'none';
-            clearInterval(timerInt);
-            timerInt = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - g.startTime) / 1000);
-                const remain = Math.max(0, 30 - elapsed);
-                document.getElementById('timer').innerText = remain;
-                if(remain === 0 && g.turn === mySlot) {
-                    update(ref(db, `naval/${currentGameId}`), { turn: enemySlot, startTime: Date.now() });
-                }
-            }, 1000);
-            document.getElementById('status-msg').innerText = g.turn === mySlot ? "À VOUS DE TIRER !" : "L'ENNEMI RÉFLÉCHIT...";
+            document.getElementById('status-msg').innerText = g.turn === mySlot ? "À VOUS !" : "ENNEMI...";
+            // Logique Timer 30s
+            const remain = Math.max(0, 30 - Math.floor((Date.now() - g.startTime)/1000));
+            document.getElementById('timer').innerText = remain;
+            if(remain === 0 && g.turn === mySlot) fireShot(-1); // Passe le tour
         }
+        drawGrids(g);
+    }
 
-        // Mise à jour visuelle des grilles
-        const myGridCells = document.getElementById('my-grid').children;
-        const enemyGridCells = document.getElementById('enemy-grid').children;
-        const myShots = g[mySlot].shots || [];
-        const enemyShots = g[enemySlot].shots || [];
-        const myShipsFromDB = g[mySlot].ships || [];
-        const enemyShipsFromDB = g[enemySlot].ships || [];
+    function drawGrids(gameData = null) {
+        const myCells = document.getElementById('my-grid').children;
+        const enCells = document.getElementById('enemy-grid').children;
+        const enemy = mySlot === 'p1' ? 'p2' : 'p1';
 
         for(let i=0; i<100; i++) {
-            // Ma Grille
-            myGridCells[i].className = 'cell';
-            if(myShipsFromDB.includes(i)) myGridCells[i].classList.add('ship');
-            if(enemyShots.includes(i)) myGridCells[i].classList.add(myShipsFromDB.includes(i) ? 'hit' : 'miss');
-
-            // Grille Ennemie
-            enemyGridCells[i].className = 'cell';
-            if(myShots.includes(i)) enemyGridCells[i].classList.add(enemyShipsFromDB.includes(i) ? 'hit' : 'miss');
-        }
-
-        // Vérification Victoire (17 touches)
-        if(g.phase === 'battle') {
-            const hitsOnEnemy = myShots.filter(s => enemyShipsFromDB.includes(s)).length;
-            const hitsOnMe = enemyShots.filter(s => myShipsFromDB.includes(s)).length;
-            
-            if(hitsOnEnemy === TOTAL_REQUIRED) { alert("VICTOIRE ! Flotte ennemie coulée."); location.reload(); }
-            else if(hitsOnMe === TOTAL_REQUIRED) { alert("DÉFAITE... Votre flotte a sombré."); location.reload(); }
+            myCells[i].className = 'cell';
+            if(myShips.includes(i)) myCells[i].classList.add('ship');
+            if(gameData) {
+                const enShots = gameData[enemy].shots || [];
+                if(enShots.includes(i)) myCells[i].classList.add(myShips.includes(i) ? 'hit' : 'miss');
+                
+                enCells[i].className = 'cell';
+                const myShots = gameData[mySlot].shots || [];
+                const enShips = gameData[enemy].ships || [];
+                if(myShots.includes(i)) enCells[i].classList.add(enShips.includes(i) ? 'hit' : 'miss');
+            }
         }
     }
 </script>
 </body>
-  </html>
+</html>
