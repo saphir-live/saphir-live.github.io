@@ -1,118 +1,129 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda Concerts & Chants - Saphir</title>
+    <title>Saphir | Secured Events Calendar</title>
     <style>
         :root {
-            --primary: #2c3e50;
+            --primary: #1a252f;
             --accent-concert: #e74c3c;
-            --accent-chant: #3498db;
-            --bg: #f4f7f6;
+            --accent-singing: #3498db;
+            --bg: #f8f9fa;
+            --white: #ffffff;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background-color: var(--bg);
             margin: 0;
             padding: 20px;
+            color: #333;
         }
 
         .calendar-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: var(--white);
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         header {
             background: var(--primary);
-            color: white;
+            color: var(--white);
             padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .nav-btns button {
-            background: rgba(255,255,255,0.2);
-            border: none;
+        .nav-btns button, .add-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
             color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: 0.3s;
-            font-weight: bold;
+            transition: 0.2s;
+            font-weight: 500;
         }
 
-        .nav-btns button:hover {
-            background: rgba(255,255,255,0.4);
-        }
+        .nav-btns button:hover, .add-btn:hover { background: rgba(255,255,255,0.3); }
+        .add-btn { background: #27ae60; border: none; }
+        .add-btn:hover { background: #2ecc71; }
 
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            min-height: 500px;
-            background-color: #eee;
-            gap: 1px; /* Créer les lignes de séparation */
+            background-color: #e0e0e0;
+            gap: 1px;
         }
 
-        .day-column {
-            background: white;
-            min-height: 400px;
-            display: flex;
-            flex-direction: column;
-        }
+        .day-column { background: var(--white); min-height: 450px; }
 
         .day-header {
             padding: 15px;
             text-align: center;
-            background: #f8f9fa;
-            border-bottom: 2px solid #eee;
+            background: #fdfdfd;
+            border-bottom: 2px solid #f0f0f0;
         }
 
-        .day-header span {
-            display: block;
-            font-size: 0.8em;
-            text-transform: uppercase;
-            color: #7f8c8d;
-        }
+        .day-header span { display: block; font-size: 0.75rem; text-transform: uppercase; color: #95a5a6; letter-spacing: 1px; }
+        .day-header strong { font-size: 1.3rem; color: var(--primary); }
 
-        .day-header strong {
-            font-size: 1.2em;
-            color: var(--primary);
-        }
-
-        .events-list {
-            padding: 10px;
-            flex-grow: 1;
-        }
+        .events-list { padding: 8px; }
 
         .event {
-            padding: 8px;
-            margin-bottom: 8px;
-            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
             color: white;
-            font-size: 0.85em;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            animation: fadeIn 0.5s ease;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .event.concert { background-color: var(--accent-concert); border-left: 4px solid #c0392b; }
-        .event.chant { background-color: var(--accent-chant); border-left: 4px solid #2980b9; }
+        .event.concert { background: var(--accent-concert); border-left: 4px solid #b03a2e; }
+        .event.singing { background: var(--accent-singing); border-left: 4px solid #2471a3; }
+        .event-time { font-weight: bold; display: block; font-size: 0.75rem; opacity: 0.9; }
 
-        .event-time { font-weight: bold; display: block; margin-bottom: 2px; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
 
-        @media (max-width: 900px) {
-            .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        form input, form select, form button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        form button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .password-field { border: 2px solid #f39c12 !important; }
+
+        @media (max-width: 850px) {
+            .calendar-grid { grid-template-columns: 1fr; }
+            .day-column { min-height: auto; border-bottom: 10px solid #eee; }
         }
     </style>
 </head>
@@ -120,24 +131,46 @@
 
 <div class="calendar-container">
     <header>
-        <h2 id="currentWeekRange">Semaine du ...</h2>
+        <div>
+            <span id="currentYear" style="opacity: 0.7; font-size: 0.9rem; display: block;">2026</span>
+            <h2 id="currentWeekRange" style="margin:0">Loading...</h2>
+        </div>
         <div class="nav-btns">
-            <button id="prevWeek">◀ Précédent</button>
-            <button id="today">Aujourd'hui</button>
-            <button id="nextWeek">Suivant ▶</button>
+            <button id="prevWeek">Prev</button>
+            <button id="today">Today</button>
+            <button id="nextWeek">Next</button>
+            <button class="add-btn" id="openModal">+ Add Event</button>
         </div>
     </header>
 
-    <div class="calendar-grid" id="calendarGrid">
-        </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+</div>
+
+<div id="eventModal" class="modal">
+    <div class="modal-content">
+        <h3>New Event</h3>
+        <form id="eventForm">
+            <input type="text" id="title" placeholder="Event Title" required>
+            <input type="date" id="date" required>
+            <input type="time" id="time" required>
+            <select id="type">
+                <option value="concert">Concert</option>
+                <option value="singing">Singing</option>
+            </select>
+            <hr>
+            <input type="password" id="password" class="password-field" placeholder="Admin Password" required>
+            <button type="submit">Verify & Save</button>
+            <button type="button" id="closeModal" style="background:#ccc; margin-top:0">Cancel</button>
+        </form>
+    </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-    // CONFIGURATION FIREBASE
-    const firebaseConfig = {
+    // --- REPLACE WITH YOUR CONFIG ---
+        const firebaseConfig = {
     apiKey: "AIzaSyDKlg9GOJxXliHqdIWUvGy-XLUh93ceTas",
     authDomain: "planification-b909d.firebaseapp.com",
     projectId: "planification-b909d",
@@ -152,7 +185,6 @@
 
     let currentMonday = getMonday(new Date());
 
-    // Utilitaire pour trouver le lundi de la semaine en cours
     function getMonday(d) {
         d = new Date(d);
         let day = d.getDay();
@@ -160,75 +192,97 @@
         return new Date(d.setDate(diff));
     }
 
-    function formatDate(date) {
-        return date.toISOString().split('T')[0];
-    }
-
     function updateUI() {
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
-        
-        const options = { day: 'numeric', month: 'long' };
         const endOfWeek = new Date(currentMonday);
         endOfWeek.setDate(endOfWeek.getDate() + 6);
-        document.getElementById('currentWeekRange').innerText = `Semaine du ${currentMonday.toLocaleDateString('fr-FR', options)}`;
+        
+        document.getElementById('currentWeekRange').innerText = `${currentMonday.toLocaleDateString('en-US', {month:'short', day:'numeric'})} - ${endOfWeek.toLocaleDateString('en-US', {month:'short', day:'numeric'})}`;
+        document.getElementById('currentYear').innerText = currentMonday.getFullYear();
 
         for (let i = 0; i < 7; i++) {
             let dayDate = new Date(currentMonday);
             dayDate.setDate(dayDate.getDate() + i);
-            let dateStr = formatDate(dayDate);
+            let dateStr = dayDate.toISOString().split('T')[0];
 
-            // Création de la structure HTML du jour
             const dayCol = document.createElement('div');
             dayCol.className = 'day-column';
             dayCol.innerHTML = `
                 <div class="day-header">
-                    <span>${dayDate.toLocaleDateString('fr-FR', { weekday: 'long' })}</span>
+                    <span>${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</span>
                     <strong>${dayDate.getDate()}</strong>
                 </div>
                 <div class="events-list" id="events-${dateStr}"></div>
             `;
             grid.appendChild(dayCol);
 
-            // Écouteur Firebase en temps réel pour chaque jour
             const q = query(collection(db, "evenements"), where("date", "==", dateStr));
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById(`events-${dateStr}`);
-                container.innerHTML = ''; // Nettoyer avant mise à jour
-                
+                if (!container) return;
+                container.innerHTML = '';
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const evEl = document.createElement('div');
-                    evEl.className = `event ${data.type}`;
-                    evEl.innerHTML = `
-                        <span class="event-time">${data.heure || '--:--'}</span>
-                        <span class="event-title">${data.titre}</span>
-                    `;
-                    container.appendChild(evEl);
+                    container.innerHTML += `
+                        <div class="event ${data.type}">
+                            <span class="event-time">${data.heure}</span>
+                            <strong>${data.titre}</strong>
+                        </div>`;
                 });
             });
         }
     }
 
-    // Navigation
-    document.getElementById('prevWeek').onclick = () => {
-        currentMonday.setDate(currentMonday.getDate() - 7);
-        updateUI();
+    // Navigation logic
+    document.getElementById('prevWeek').onclick = () => { currentMonday.setDate(currentMonday.getDate() - 7); updateUI(); };
+    document.getElementById('nextWeek').onclick = () => { currentMonday.setDate(currentMonday.getDate() + 7); updateUI(); };
+    document.getElementById('today').onclick = () => { currentMonday = getMonday(new Date()); updateUI(); };
+
+    // Modal Logic
+    const modal = document.getElementById('eventModal');
+    document.getElementById('openModal').onclick = () => modal.style.display = 'flex';
+    document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
+
+    // Verification & Submission
+    document.getElementById('eventForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const inputPass = document.getElementById('password').value;
+
+        try {
+            // 1. Fetch password from Firebase
+            // Assumption: You have a collection 'settings' and a document 'auth' with field 'adminKey'
+            const configRef = doc(db, "settings", "auth");
+            const configSnap = await getDoc(configRef);
+
+            if (configSnap.exists()) {
+                const correctPass = configSnap.data().adminKey;
+
+                if (inputPass === correctPass) {
+                    // 2. Add the event
+                    const newEvent = {
+                        titre: document.getElementById('title').value,
+                        date: document.getElementById('date').value,
+                        heure: document.getElementById('time').value,
+                        type: document.getElementById('type').value
+                    };
+                    await addDoc(collection(db, "evenements"), newEvent);
+                    modal.style.display = 'none';
+                    e.target.reset();
+                    alert("Event added successfully!");
+                } else {
+                    alert("Incorrect password. Access denied.");
+                }
+            } else {
+                alert("Security error: Password not found in database.");
+            }
+        } catch (err) {
+            console.error("Error:", err);
+            alert("An error occurred while connecting to the database.");
+        }
     };
 
-    document.getElementById('nextWeek').onclick = () => {
-        currentMonday.setDate(currentMonday.getDate() + 7);
-        updateUI();
-    };
-
-    document.getElementById('today').onclick = () => {
-        currentMonday = getMonday(new Date());
-        updateUI();
-    };
-
-    // Initialisation
     updateUI();
-
 </script>
 </body>
 </html>
