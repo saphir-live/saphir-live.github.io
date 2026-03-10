@@ -3,127 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saphir | Secured Events Calendar</title>
+    <title>Saphir | Elegant Events</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1a252f;
-            --accent-concert: #e74c3c;
-            --accent-singing: #3498db;
-            --bg: #f8f9fa;
-            --white: #ffffff;
+            --saphir-deep: #0f172a;
+            --saphir-blue: #0ea5e9;
+            --saphir-light: #38bdf8;
+            --saphir-gold: #fbbf24;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
         }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text-main);
             margin: 0;
+            min-height: 100vh;
             padding: 20px;
-            color: #333;
         }
 
+        /* Container with subtle glow */
         .calendar-container {
             max-width: 1200px;
-            margin: 0 auto;
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin: 40px auto;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             overflow: hidden;
         }
 
+        /* Header section with Artistic Typography */
         header {
-            background: var(--primary);
-            color: var(--white);
-            padding: 20px;
+            padding: 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
+            border-bottom: 1px solid var(--glass-border);
+            background: linear-gradient(to bottom, rgba(255,255,255,0.02), transparent);
         }
 
-        .nav-btns button, .add-btn {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.2);
+        .brand h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(to right, #fff, var(--saphir-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        #currentWeekRange {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        /* Button Styling */
+        .nav-btns { display: flex; gap: 12px; align-items: center; }
+
+        button {
+            font-family: 'Inter', sans-serif;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
             color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 12px;
             cursor: pointer;
-            transition: 0.2s;
-            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
         }
 
-        .nav-btns button:hover, .add-btn:hover { background: rgba(255,255,255,0.3); }
-        .add-btn { background: #27ae60; border: none; }
-        .add-btn:hover { background: #2ecc71; }
+        button:hover {
+            background: var(--saphir-blue);
+            border-color: var(--saphir-light);
+            transform: translateY(-2px);
+        }
 
+        .add-btn {
+            background: white;
+            color: var(--saphir-deep);
+            font-weight: 600;
+            border: none;
+        }
+
+        .add-btn:hover {
+            background: var(--saphir-gold);
+            color: var(--saphir-deep);
+        }
+
+        /* Grid Design */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            background-color: #e0e0e0;
-            gap: 1px;
+            gap: 0;
+            background: var(--glass-border);
         }
 
-        .day-column { background: var(--white); min-height: 450px; }
+        .day-column {
+            background: rgba(15, 23, 42, 0.4);
+            min-height: 500px;
+            transition: background 0.3s;
+            border-right: 1px solid var(--glass-border);
+        }
+
+        .day-column:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
 
         .day-header {
-            padding: 15px;
+            padding: 25px 15px;
             text-align: center;
-            background: #fdfdfd;
-            border-bottom: 2px solid #f0f0f0;
         }
 
-        .day-header span { display: block; font-size: 0.75rem; text-transform: uppercase; color: #95a5a6; letter-spacing: 1px; }
-        .day-header strong { font-size: 1.3rem; color: var(--primary); }
+        .day-header span {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--saphir-light);
+            margin-bottom: 8px;
+        }
 
-        .events-list { padding: 8px; }
+        .day-header strong {
+            font-size: 1.5rem;
+            font-family: 'Playfair Display', serif;
+        }
 
+        /* Event Cards */
         .event {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            color: white;
-            font-size: 0.85rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .event.concert { background: var(--accent-concert); border-left: 4px solid #b03a2e; }
-        .event.singing { background: var(--accent-singing); border-left: 4px solid #2471a3; }
-        .event-time { font-weight: bold; display: block; font-size: 0.75rem; opacity: 0.9; }
-
-        /* MODAL STYLES */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        form input, form select, form button {
-            width: 100%;
+            margin: 8px;
             padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+            animation: slideUp 0.4s ease-out;
         }
 
-        form button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        .password-field { border: 2px solid #f39c12 !important; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        @media (max-width: 850px) {
+        .event.concert {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(14, 165, 233, 0.05));
+            border-left: 3px solid var(--saphir-blue);
+        }
+
+        .event.singing {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+            border-left: 3px solid var(--saphir-gold);
+        }
+
+        .event-time {
+            display: block;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        /* Modal Redesign */
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--saphir-light);
+            box-shadow: 0 0 40px rgba(14, 165, 233, 0.2);
+            color: white;
+            border-radius: 20px;
+            padding: 40px;
+        }
+
+        input, select {
+            background: rgba(0,0,0,0.2) !important;
+            border: 1px solid var(--glass-border) !important;
+            color: white !important;
+            padding: 12px !important;
+            margin: 15px 0 !important;
+        }
+
+        @media (max-width: 900px) {
             .calendar-grid { grid-template-columns: 1fr; }
-            .day-column { min-height: auto; border-bottom: 10px solid #eee; }
+            .day-column { min-height: auto; border-bottom: 1px solid var(--glass-border); }
+            header { flex-direction: column; text-align: center; }
         }
     </style>
 </head>
@@ -131,15 +201,15 @@
 
 <div class="calendar-container">
     <header>
-        <div>
-            <span id="currentYear" style="opacity: 0.7; font-size: 0.9rem; display: block;">2026</span>
-            <h2 id="currentWeekRange" style="margin:0">Loading...</h2>
+        <div class="brand">
+            <h1>Saphir</h1>
+            <div id="currentWeekRange">Selected Week</div>
         </div>
         <div class="nav-btns">
             <button id="prevWeek">Prev</button>
             <button id="today">Today</button>
             <button id="nextWeek">Next</button>
-            <button class="add-btn" id="openModal">+ Add Event</button>
+            <button class="add-btn" id="openModal">Schedule Event</button>
         </div>
     </header>
 
@@ -148,23 +218,23 @@
 
 <div id="eventModal" class="modal">
     <div class="modal-content">
-        <h3>New Event</h3>
+        <h2 style="font-family: 'Playfair Display', serif;">New Event</h2>
         <form id="eventForm">
-            <input type="text" id="title" placeholder="Event Title" required>
-            <input type="date" id="date" required>
-            <input type="time" id="time" required>
+            <input type="text" id="title" placeholder="Event Name" required>
+            <div style="display:flex; gap:10px;">
+                <input type="date" id="date" required style="flex:2">
+                <input type="time" id="time" required style="flex:1">
+            </div>
             <select id="type">
-                <option value="concert">Concert</option>
-                <option value="singing">Singing</option>
+                <option value="concert">Concert Performance</option>
+                <option value="singing">Choral / Singing Session</option>
             </select>
-            <hr>
-            <input type="password" id="password" class="password-field" placeholder="Admin Password" required>
-            <button type="submit">Verify & Save</button>
-            <button type="button" id="closeModal" style="background:#ccc; margin-top:0">Cancel</button>
+            <input type="password" id="password" placeholder="Access Key" required>
+            <button type="submit" class="add-btn" style="width:100%; margin-top:20px;">Confirm Registration</button>
+            <button type="button" id="closeModal" style="width:100%; margin-top:10px; background:transparent;">Dismiss</button>
         </form>
     </div>
 </div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
