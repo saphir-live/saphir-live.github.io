@@ -119,6 +119,29 @@
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:100; }
         .modal-content { background:#1e293b; padding:30px; border-radius:15px; width:350px; }
         input, select { width:100%; margin: 10px 0; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:5px; }
+
+        .event {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.event:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+    filter: brightness(1.1);
+}
+/* Indication visuelle qu'on peut supprimer */
+.event::after {
+    content: 'Click to delete';
+    display: block;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+.event:hover::after {
+    opacity: 0.7;
+}
     </style>
 </head>
 <body>
@@ -161,7 +184,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { 
+    getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc, deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
     apiKey: "AIzaSyDKlg9GOJxXliHqdIWUvGy-XLUh93ceTas",
@@ -232,7 +257,64 @@
                 });
             });
         }
+
+        // Modification dans onSnapshot pour rendre les événements cliquables
+    onSnapshot(q, (snapshot) => {
+        const container = document.getElementById(`events-${dateStr}`);
+        if (!container) return;
+        container.innerHTML = ''; 
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const eventId = docSnap.id; // On récupère l'ID unique du document
+            
+            const [hours, minutes] = data.heure.split(':').map(Number);
+            const topPosition = (hours * HOUR_HEIGHT) + (minutes * (HOUR_HEIGHT/60)) + 60;
+
+            const evEl = document.createElement('div');
+            evEl.className = `event ${data.type}`;
+            evEl.style.top = `${topPosition}px`;
+            evEl.style.height = `60px`;
+            evEl.innerHTML = `<strong>${data.heure}</strong><br>${data.titre}`;
+            
+            // ACTION AU CLIC : Suppression
+            evEl.onclick = () => deleteEvent(eventId, data.titre);
+            
+            container.appendChild(evEl);
+        });
+    });
+        
     }
+
+    // Fonction de suppression sécurisée
+async function deleteEvent(id, title) {
+    const inputPass = prompt(`To delete "${title}", please enter the Admin Password:`);
+    
+    if (inputPass === null) return; // Annulé par l'utilisateur
+
+    try {
+        // Vérification du mot de passe dans Firestore
+        const configRef = doc(db, "settings", "auth");
+        const configSnap = await getDoc(configRef);
+
+        if (configSnap.exists()) {
+            const correctPass = configSnap.data().adminKey;
+
+            if (inputPass === correctPass) {
+                if (confirm(`Are you sure you want to permanently delete "${title}"?`)) {
+                    await deleteDoc(doc(db, "evenements", id));
+                    alert("Event deleted.");
+                }
+            } else {
+                alert("Incorrect password. Access denied.");
+            }
+        }
+    } catch (err) {
+        console.error("Delete error:", err);
+        alert("An error occurred during deletion.");
+    }
+}
+    
 
     // Modal & Nav Logic (Similaire au précédent...)
     document.getElementById('openModal').onclick = () => document.getElementById('eventModal').style.display = 'flex';
