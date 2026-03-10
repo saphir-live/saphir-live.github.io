@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Concerts & Chants - Saphir</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent-concert: #e74c3c;
+            --accent-chant: #3498db;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .calendar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-btns button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        .nav-btns button:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            min-height: 500px;
+            background-color: #eee;
+            gap: 1px; /* Créer les lignes de séparation */
+        }
+
+        .day-column {
+            background: white;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .day-header {
+            padding: 15px;
+            text-align: center;
+            background: #f8f9fa;
+            border-bottom: 2px solid #eee;
+        }
+
+        .day-header span {
+            display: block;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            color: #7f8c8d;
+        }
+
+        .day-header strong {
+            font-size: 1.2em;
+            color: var(--primary);
+        }
+
+        .events-list {
+            padding: 10px;
+            flex-grow: 1;
+        }
+
+        .event {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.85em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .event.concert { background-color: var(--accent-concert); border-left: 4px solid #c0392b; }
+        .event.chant { background-color: var(--accent-chant); border-left: 4px solid #2980b9; }
+
+        .event-time { font-weight: bold; display: block; margin-bottom: 2px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 900px) {
+            .calendar-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="calendar-container">
+    <header>
+        <h2 id="currentWeekRange">Semaine du ...</h2>
+        <div class="nav-btns">
+            <button id="prevWeek">◀ Précédent</button>
+            <button id="today">Aujourd'hui</button>
+            <button id="nextWeek">Suivant ▶</button>
+        </div>
+    </header>
+
+    <div class="calendar-grid" id="calendarGrid">
+        </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+    // CONFIGURATION FIREBASE
+    const firebaseConfig = {
+    apiKey: "AIzaSyDKlg9GOJxXliHqdIWUvGy-XLUh93ceTas",
+    authDomain: "planification-b909d.firebaseapp.com",
+    projectId: "planification-b909d",
+    storageBucket: "planification-b909d.firebasestorage.app",
+    messagingSenderId: "548367340058",
+    appId: "1:548367340058:web:e4531587c33987a3c8b7a3",
+    measurementId: "G-6L5XTTSFL4"
+  };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentMonday = getMonday(new Date());
+
+    // Utilitaire pour trouver le lundi de la semaine en cours
+    function getMonday(d) {
+        d = new Date(d);
+        let day = d.getDay();
+        let diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    function updateUI() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        
+        const options = { day: 'numeric', month: 'long' };
+        const endOfWeek = new Date(currentMonday);
+        endOfWeek.setDate(endOfWeek.getDate() + 6);
+        document.getElementById('currentWeekRange').innerText = `Semaine du ${currentMonday.toLocaleDateString('fr-FR', options)}`;
+
+        for (let i = 0; i < 7; i++) {
+            let dayDate = new Date(currentMonday);
+            dayDate.setDate(dayDate.getDate() + i);
+            let dateStr = formatDate(dayDate);
+
+            // Création de la structure HTML du jour
+            const dayCol = document.createElement('div');
+            dayCol.className = 'day-column';
+            dayCol.innerHTML = `
+                <div class="day-header">
+                    <span>${dayDate.toLocaleDateString('fr-FR', { weekday: 'long' })}</span>
+                    <strong>${dayDate.getDate()}</strong>
+                </div>
+                <div class="events-list" id="events-${dateStr}"></div>
+            `;
+            grid.appendChild(dayCol);
+
+            // Écouteur Firebase en temps réel pour chaque jour
+            const q = query(collection(db, "evenements"), where("date", "==", dateStr));
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById(`events-${dateStr}`);
+                container.innerHTML = ''; // Nettoyer avant mise à jour
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const evEl = document.createElement('div');
+                    evEl.className = `event ${data.type}`;
+                    evEl.innerHTML = `
+                        <span class="event-time">${data.heure || '--:--'}</span>
+                        <span class="event-title">${data.titre}</span>
+                    `;
+                    container.appendChild(evEl);
+                });
+            });
+        }
+    }
+
+    // Navigation
+    document.getElementById('prevWeek').onclick = () => {
+        currentMonday.setDate(currentMonday.getDate() - 7);
+        updateUI();
+    };
+
+    document.getElementById('nextWeek').onclick = () => {
+        currentMonday.setDate(currentMonday.getDate() + 7);
+        updateUI();
+    };
+
+    document.getElementById('today').onclick = () => {
+        currentMonday = getMonday(new Date());
+        updateUI();
+    };
+
+    // Initialisation
+    updateUI();
+
+</script>
+</body>
+</html>
