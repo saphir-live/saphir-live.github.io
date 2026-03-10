@@ -1,10 +1,9 @@
-
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saphir | Schedule</title>
+    <title>Saphir | Premium Secured Calendar</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,15 +13,14 @@
             --saphir-gold: #fbbf24;
             --glass-border: rgba(255, 255, 255, 0.1);
             --text-main: #f8fafc;
-            --hour-height: 60px; /* Hauteur d'une heure en pixels */
+            --hour-height: 80px; 
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: radial-gradient(circle at top right, #1e293b, #0f172a);
             color: var(--text-main);
-            margin: 0;
-            padding: 20px;
+            margin: 0; padding: 20px;
         }
 
         .calendar-container {
@@ -33,6 +31,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 24px;
             overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
 
         header {
@@ -43,130 +42,108 @@
             border-bottom: 1px solid var(--glass-border);
         }
 
-        .brand h1 { font-family: 'Playfair Display', serif; font-size: 2rem; margin: 0; color: var(--saphir-light); }
+        .brand h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; margin: 0; color: var(--saphir-light); }
+        #currentWeekRange { color: #94a3b8; font-weight: 300; }
 
-        /* Schedule Layout */
         .schedule-wrapper {
             display: flex;
             position: relative;
             background: rgba(0,0,0,0.2);
             overflow-x: auto;
+            height: 70vh; /* Scrollable area */
         }
 
-        /* Time column (Gutter) */
         .time-gutter {
-            width: 60px;
+            width: 70px;
             flex-shrink: 0;
+            background: rgba(15, 23, 42, 0.9);
             border-right: 1px solid var(--glass-border);
-            background: rgba(15, 23, 42, 0.6);
+            z-index: 20;
         }
 
         .time-slot {
             height: var(--hour-height);
-            font-size: 0.7rem;
-            color: #94a3b8;
+            font-size: 0.75rem;
+            color: #64748b;
             text-align: center;
-            padding-top: 5px;
+            line-height: var(--hour-height);
             border-bottom: 1px solid rgba(255,255,255,0.03);
         }
 
-        /* Calendar Grid */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             flex-grow: 1;
-            position: relative;
+            min-width: 800px; /* Prevent squishing */
         }
 
         .day-column {
             position: relative;
             border-right: 1px solid var(--glass-border);
-            height: calc(var(--hour-height) * 24); /* 24 heures */
+            background: rgba(255,255,255,0.01);
         }
 
         .day-header {
             position: sticky;
             top: 0;
-            z-index: 10;
+            z-index: 30;
             background: #1e293b;
-            padding: 10px;
+            padding: 15px 5px;
             text-align: center;
-            border-bottom: 1px solid var(--glass-border);
+            border-bottom: 2px solid var(--saphir-blue);
         }
 
-        .day-header span { display: block; font-size: 0.65rem; color: var(--saphir-light); text-transform: uppercase; }
+        .day-header span { display: block; font-size: 0.7rem; color: var(--saphir-light); text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Event Positioning */
+        /* Events */
         .event {
             position: absolute;
-            left: 5px;
-            right: 5px;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 0.8rem;
+            left: 6px; right: 6px;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.85rem;
             z-index: 2;
+            cursor: pointer;
+            transition: all 0.2s;
             border: 1px solid rgba(255,255,255,0.1);
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .event.concert { background: rgba(14, 165, 233, 0.3); border-left: 3px solid var(--saphir-blue); }
-        .event.singing { background: rgba(251, 191, 36, 0.2); border-left: 3px solid var(--saphir-gold); }
+        .event:hover { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .event.concert { background: linear-gradient(135deg, rgba(14,165,233,0.3), rgba(14,165,233,0.1)); border-left: 4px solid var(--saphir-blue); }
+        .event.singing { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05)); border-left: 4px solid var(--saphir-gold); }
 
-        /* Modal & Buttons (same as before) */
-        button { background: var(--glass-border); color: white; border: 1px solid var(--glass-border); padding: 8px 15px; border-radius: 8px; cursor: pointer; }
-        button:hover { background: var(--saphir-blue); }
-        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:100; }
-        .modal-content { background:#1e293b; padding:30px; border-radius:15px; width:350px; }
-        input, select { width:100%; margin: 10px 0; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:5px; }
+        /* Form / Modal */
+        button { background: var(--glass-border); color: white; border: 1px solid var(--glass-border); padding: 10px 18px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: var(--saphir-blue); border-color: var(--saphir-light); }
+        .add-btn { background: var(--saphir-light); color: var(--saphir-deep); font-weight: bold; }
 
-        .event {
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.event:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-    filter: brightness(1.1);
-}
-/* Indication visuelle qu'on peut supprimer */
-.event::after {
-    content: 'Click to delete';
-    display: block;
-    font-size: 0.6rem;
-    opacity: 0;
-    transition: opacity 0.2s;
-    text-transform: uppercase;
-    margin-top: 4px;
-}
-.event:hover::after {
-    opacity: 0.7;
-}
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; z-index:1000; }
+        .modal-content { background:#1e293b; padding:40px; border-radius:24px; width:380px; border: 1px solid var(--saphir-light); }
+        input, select { width:100%; margin: 12px 0; padding:12px; background:#0f172a; border:1px solid #334155; color:white; border-radius:8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="calendar-container">
     <header>
-        <div class="brand"><h1>Saphir Schedule</h1><div id="currentWeekRange">Loading...</div></div>
+        <div class="brand"><h1>Saphir</h1><div id="currentWeekRange">...</div></div>
         <div class="nav-btns">
             <button id="prevWeek">Prev</button>
             <button id="today">Today</button>
             <button id="nextWeek">Next</button>
-            <button id="openModal" style="background:var(--saphir-light); color:#000;">+ Add</button>
+            <button class="add-btn" id="openModal">+ New Event</button>
         </div>
     </header>
 
     <div class="schedule-wrapper">
         <div class="time-gutter" id="timeGutter"></div>
-
         <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 </div>
 
 <div id="eventModal" class="modal">
     <div class="modal-content">
-        <h2>Add Event</h2>
+        <h2 style="font-family: 'Playfair Display'; margin-top:0">Add Performance</h2>
         <form id="eventForm">
             <input type="text" id="title" placeholder="Event Title" required>
             <input type="date" id="date" required>
@@ -175,8 +152,8 @@
                 <option value="concert">Concert</option>
                 <option value="singing">Singing Session</option>
             </select>
-            <input type="password" id="password" placeholder="Access Key" required>
-            <button type="submit" style="width:100%; background:var(--saphir-light); color:#000;">Save</button>
+            <input type="password" id="password" placeholder="Admin Access Key" required>
+            <button type="submit" style="width:100%; background:var(--saphir-light); color:#000; font-weight:600;">Secure Save</button>
             <button type="button" id="closeModal" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
         </form>
     </div>
@@ -184,11 +161,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { 
-    getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc, deleteDoc 
-} from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, onSnapshot, getDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        const firebaseConfig = {
+            const firebaseConfig = {
     apiKey: "AIzaSyDKlg9GOJxXliHqdIWUvGy-XLUh93ceTas",
     authDomain: "planification-b909d.firebaseapp.com",
     projectId: "planification-b909d",
@@ -197,12 +172,14 @@
     appId: "1:548367340058:web:e4531587c33987a3c8b7a3",
     measurementId: "G-6L5XTTSFL4"
   };
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const HOUR_HEIGHT = 60; 
+    const HOUR_HEIGHT = 80;
+    const HEADER_OFFSET = 70; // Height of the sticky day header
 
-    // Generate Time Gutter
+    // Init Time Gutter
     const gutter = document.getElementById('timeGutter');
     for(let i=0; i<24; i++) {
         gutter.innerHTML += `<div class="time-slot">${i}:00</div>`;
@@ -217,9 +194,25 @@
         return new Date(d.setDate(diff));
     }
 
+    // Secure Delete Function
+    async function deleteEvent(id, title) {
+        const inputPass = prompt(`To delete "${title}", enter Admin Key:`);
+        if (!inputPass) return;
+
+        const configSnap = await getDoc(doc(db, "settings", "auth"));
+        if (configSnap.exists() && inputPass === configSnap.data().adminKey) {
+            if (confirm("Confirm permanent deletion?")) {
+                await deleteDoc(doc(db, "evenements", id));
+            }
+        } else {
+            alert("Unauthorized.");
+        }
+    }
+
     function updateUI() {
         const grid = document.getElementById('calendarGrid');
         grid.innerHTML = '';
+        
         const endOfWeek = new Date(currentMonday);
         endOfWeek.setDate(endOfWeek.getDate() + 6);
         document.getElementById('currentWeekRange').innerText = `${currentMonday.toLocaleDateString('en-US', {month:'short', day:'numeric'})} - ${endOfWeek.toLocaleDateString('en-US', {month:'short', day:'numeric'})}`;
@@ -231,92 +224,38 @@
 
             const dayCol = document.createElement('div');
             dayCol.className = 'day-column';
-            dayCol.innerHTML = `<div class="day-header"><span>${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</span><strong>${dayDate.getDate()}</strong></div>`;
+            dayCol.innerHTML = `
+                <div class="day-header">
+                    <span>${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                    <strong>${dayDate.getDate()}</strong>
+                </div>
+            `;
             grid.appendChild(dayCol);
 
-            // Listen to events
+            // Corrected Query Scope
             const q = query(collection(db, "evenements"), where("date", "==", dateStr));
             onSnapshot(q, (snapshot) => {
-                // Clear previous events in this column except header
-                const existingEvents = dayCol.querySelectorAll('.event');
-                existingEvents.forEach(e => e.remove());
+                // Clear old events in this column
+                dayCol.querySelectorAll('.event').forEach(e => e.remove());
 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const [hours, minutes] = data.heure.split(':').map(Number);
-                    
-                    // Calcul de la position verticale (top)
-                    const topPosition = (hours * HOUR_HEIGHT) + (minutes * (HOUR_HEIGHT/60)) + 60; // +60 for header height offset
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const [h, m] = data.heure.split(':').map(Number);
+                    const topPos = (h * HOUR_HEIGHT) + (m * (HOUR_HEIGHT/60)) + HEADER_OFFSET;
 
                     const evEl = document.createElement('div');
                     evEl.className = `event ${data.type}`;
-                    evEl.style.top = `${topPosition}px`;
-                    evEl.style.height = `50px`; // Hauteur fixe par défaut
-                    evEl.innerHTML = `<strong>${data.heure}</strong><br>${data.titre}`;
+                    evEl.style.top = `${topPos}px`;
+                    evEl.innerHTML = `<b>${data.heure}</b><br>${data.titre}`;
+                    
+                    evEl.onclick = () => deleteEvent(docSnap.id, data.titre);
                     dayCol.appendChild(evEl);
                 });
             });
         }
-
-        // Modification dans onSnapshot pour rendre les événements cliquables
-    onSnapshot(q, (snapshot) => {
-        const container = document.getElementById(`events-${dateStr}`);
-        if (!container) return;
-        container.innerHTML = ''; 
-
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            const eventId = docSnap.id; // On récupère l'ID unique du document
-            
-            const [hours, minutes] = data.heure.split(':').map(Number);
-            const topPosition = (hours * HOUR_HEIGHT) + (minutes * (HOUR_HEIGHT/60)) + 60;
-
-            const evEl = document.createElement('div');
-            evEl.className = `event ${data.type}`;
-            evEl.style.top = `${topPosition}px`;
-            evEl.style.height = `60px`;
-            evEl.innerHTML = `<strong>${data.heure}</strong><br>${data.titre}`;
-            
-            // ACTION AU CLIC : Suppression
-            evEl.onclick = () => deleteEvent(eventId, data.titre);
-            
-            container.appendChild(evEl);
-        });
-    });
-        
     }
 
-    // Fonction de suppression sécurisée
-async function deleteEvent(id, title) {
-    const inputPass = prompt(`To delete "${title}", please enter the Admin Password:`);
-    
-    if (inputPass === null) return; // Annulé par l'utilisateur
-
-    try {
-        // Vérification du mot de passe dans Firestore
-        const configRef = doc(db, "settings", "auth");
-        const configSnap = await getDoc(configRef);
-
-        if (configSnap.exists()) {
-            const correctPass = configSnap.data().adminKey;
-
-            if (inputPass === correctPass) {
-                if (confirm(`Are you sure you want to permanently delete "${title}"?`)) {
-                    await deleteDoc(doc(db, "evenements", id));
-                    alert("Event deleted.");
-                }
-            } else {
-                alert("Incorrect password. Access denied.");
-            }
-        }
-    } catch (err) {
-        console.error("Delete error:", err);
-        alert("An error occurred during deletion.");
-    }
-}
-    
-
-    // Modal & Nav Logic (Similaire au précédent...)
+    // Modal & Navigation
     document.getElementById('openModal').onclick = () => document.getElementById('eventModal').style.display = 'flex';
     document.getElementById('closeModal').onclick = () => document.getElementById('eventModal').style.display = 'none';
     
@@ -334,7 +273,7 @@ async function deleteEvent(id, title) {
             });
             document.getElementById('eventModal').style.display = 'none';
             e.target.reset();
-        } else { alert("Wrong Password"); }
+        } else { alert("Incorrect Key"); }
     };
 
     document.getElementById('prevWeek').onclick = () => { currentMonday.setDate(currentMonday.getDate() - 7); updateUI(); };
