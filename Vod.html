@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saphir Streaming Hub</title>
+    <style>
+        :root {
+            --bg-color: #0f171e;
+            --card-bg: #1a242f;
+            --text-color: #ffffff;
+            --netflix: #e50914;
+            --prime: #00a8e1;
+            --disney: #0063e5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        button:hover { transform: scale(1.05); }
+        .btn-all { background: #555; color: white; }
+        .btn-netflix { background: var(--netflix); color: white; }
+        .btn-prime { background: var(--prime); color: white; }
+        .btn-disney { background: var(--disney); color: white; }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .card img {
+            width: 100%;
+            display: block;
+        }
+
+        .card-info {
+            padding: 15px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            margin: 0 0 5px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .provider-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 5px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Nouveautés Streaming</h1>
+    <div class="filters">
+        <button class="btn-all" onclick="loadMedia('all')">Tout voir</button>
+        <button class="btn-netflix" onclick="loadMedia(8)">Netflix</button>
+        <button class="btn-prime" onclick="loadMedia(119)">Prime Video</button>
+        <button class="btn-disney" onclick="loadMedia(337)">Disney+</button>
+    </div>
+</header>
+
+<div id="grid">
+    </div>
+
+<script>
+    const API_KEY = 'VOTRE_CLE_API_ICI'; // <-- METTEZ VOTRE CLÉ ICI
+    const BASE_URL = 'https://api.themoviedb.org/3';
+    const IMG_URL = 'https://image.tmdb.org/t/p/w500';
+
+    async function loadMedia(providerId) {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '<p>Chargement...</p>';
+
+        // Construction de l'URL pour les nouveautés (Trending)
+        let url = `${BASE_URL}/trending/all/week?api_key=${API_KEY}&language=fr-FR`;
+        
+        // Si un fournisseur est sélectionné, on utilise "discover"
+        if (providerId !== 'all') {
+            url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=fr-FR&sort_by=popularity.desc&with_watch_providers=${providerId}&watch_region=FR`;
+        }
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            displayResults(data.results);
+        } catch (error) {
+            grid.innerHTML = `<p>Erreur : Vérifiez votre clé API.</p>`;
+        }
+    }
+
+    function displayResults(results) {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        results.forEach(item => {
+            const title = item.title || item.name;
+            const poster = item.poster_path ? IMG_URL + item.poster_path : 'https://via.placeholder.com/500x750?text=No+Image';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // Note : Pour ouvrir directement l'application, on utilise un lien de recherche 
+            // car les IDs directs nécessitent des permissions privées des plateformes.
+            card.onclick = () => {
+                const query = encodeURIComponent(title);
+                window.open(`https://www.google.com/search?q=watch+${query}+on+streaming`, '_blank');
+            };
+
+            card.innerHTML = `
+                <img src="${poster}" alt="${title}">
+                <div class="card-info">
+                    <h3 class="card-title">${title}</h3>
+                    <small>${item.release_date || item.first_air_date || ''}</small>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // Chargement initial
+    loadMedia('all');
+</script>
+
+</body>
+      </html>
