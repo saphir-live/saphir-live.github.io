@@ -513,6 +513,7 @@
                 animSelector.selectedIndex = newIndex;
                 if (window.publishMode) publishMode(animSelector.value);
                 updateBackgroundImage(); // <--- AJOUTÉ
+                if (window.publishMode)  publishMode(song.mode);
 
                 modeIndicator.innerText = options[newIndex].text;
                 modeIndicator.style.opacity = "1";
@@ -1813,7 +1814,7 @@
 
                 // 1. Applique le mode
                 animSelector.value = song.mode;
-                if (window.publishMode)  publishMode(song.mode);
+                
                 if (window.publishTitle) publishTitle(titleInput.value, song.title);
                 updateBackgroundImage();
 
