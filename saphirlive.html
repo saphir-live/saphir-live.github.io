@@ -255,6 +255,9 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════
+         MOTEUR D'ANIMATIONS (copie exacte depuis SAPHIR_LIVE_SCENE)
+         ═══════════════════════════════════════════════════════ -->
     <script>
         // ─── État global ───────────────────────────────────────────────────────────
         let stars = [];
@@ -277,21 +280,26 @@
         const ctx     = canvas.getContext('2d');
 
         // Proxy pour animSelector (pas de <select> réel sur l'esclave)
+        // Exposé sur window pour être accessible depuis le module Firebase
         let _currentMode = 'titleMode';
-        const animSelector = {
+        window.animSelector = {
             get value() { return _currentMode; },
             set value(v) { _currentMode = v; }
         };
+        const animSelector = window.animSelector;
 
-        // Proxy pour titleInput
+        // Proxy pour titleInput — aussi exposé sur window
         let _currentTitle = 'SAPHIR LIVE!';
-        const titleInput = {
+        window.titleInput = {
             get value() { return _currentTitle; },
             set value(v) { _currentTitle = v; }
         };
+        const titleInput = window.titleInput;
 
         const modeIndicator = document.getElementById('mode-indicator');
 
+        // keysMap : pas de piano visible, mais on crée des rectangles virtuels pour
+        // que les calculs de position (getBoundingClientRect) ne crashent pas.
         const keysMap = new Map();
         const activeNotes = new Set();
 
@@ -324,7 +332,11 @@
             const img  = backgrounds[mode];
             document.body.style.backgroundImage = img ? `url('${img}')` : 'none';
         }
+        window.updateBackgroundImage = updateBackgroundImage;
 
+        // ─── Clavier virtuel (invisible) ──────────────────────────────────────────
+        // Crée des éléments absolument positionnés hors-écran pour que
+        // getBoundingClientRect() retourne des coordonnées calculables.
         function initVirtualKeyboard() {
             const totalWhite = 52; // 88 touches → 52 blanches
             const keyW = window.innerWidth / totalWhite;
@@ -351,6 +363,7 @@
             }
         }
 
+        // ─── Effets (copie fidèle depuis l'original) ──────────────────────────────
         function createFlower(note, velocity) {
             const hue  = (note % 12) * 30;
             const xPos = ((note - 21) / 87) * canvas.width;
@@ -558,6 +571,7 @@
             }
         }
 
+        // ─── Boucle d'animation (copie exacte) ────────────────────────────────────
         function animate() {
             canvas.width  = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -959,10 +973,14 @@
         animate();
     </script>
 
+    <!-- ═══════════════════════════════════════════════════════
+         FIREBASE — SYNCHRONISATION ESCLAVE
+         ═══════════════════════════════════════════════════════ -->
     <script type="module">
         import { initializeApp }                    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, off }   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // ─── Config (identique au maître) ─────────────────────────────────────────
         const firebaseConfig = {
             apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
             authDomain:        "saphir-live.firebaseapp.com",
@@ -985,41 +1003,55 @@
             liveLabel.textContent = ok ? 'LIVE SYNC' : 'Connexion…';
         }
 
+        // ─── 1. Écoute des notes (noteOn / noteOff) ───────────────────────────────
+        let lastNoteTs = 0;
         onValue(ref(db, 'live/note'), (snap) => {
             const data = snap.val();
             if (!data) return;
+            // Ignorer les vieux events (au chargement Firebase renvoie la dernière valeur)
+            if (data.ts <= lastNoteTs) return;
+            lastNoteTs = data.ts;
             setOnline(true);
-
             if (data.type === 'on') {
-                // Rejouer l'effet côté esclave
                 triggerEffect(data.note, data.vel);
             } else if (data.type === 'off') {
                 stopNote(data.note);
             }
         });
 
+        // ─── 2. Écoute du mode d'animation ────────────────────────────────────────
+        // Le maître écrit { mode, ts } — le ts force le trigger même si le mode est identique
+        let lastModeTs = 0;
         onValue(ref(db, 'live/mode'), (snap) => {
-            const mode = snap.val();
+            const data = snap.val();
+            if (!data) return;
+            // Compatibilité : string directe OU objet { mode, ts }
+            const mode = (typeof data === 'object') ? data.mode : data;
+            const ts   = (typeof data === 'object') ? (data.ts || 0) : 0;
             if (!mode) return;
-            if (animSelector.value !== mode) {
-                animSelector.value = mode;
-                updateBackgroundImage();
-                modeIndicator.innerText = mode;
-                modeIndicator.style.opacity = '1';
-                setTimeout(() => { modeIndicator.style.opacity = '0'; }, 1500);
-            }
+            if (ts && ts <= lastModeTs) return;
+            lastModeTs = ts || Date.now();
+            setOnline(true);
+            window.animSelector.value = mode;
+            window.updateBackgroundImage();
+            const mi = document.getElementById('mode-indicator');
+            mi.innerText = mode;
+            mi.style.opacity = '1';
+            setTimeout(() => { mi.style.opacity = '0'; }, 1500);
         });
 
+        // ─── 3. Écoute du titre ────────────────────────────────────────────────────
         onValue(ref(db, 'live/title'), (snap) => {
             const data = snap.val();
             if (!data) return;
-            titleInput.value = data.text || 'SAPHIR LIVE!';
+            window.titleInput.value = data.text || 'SAPHIR LIVE!';
             const display = document.getElementById('current-song-display');
             if (data.song) {
                 display.innerHTML = `<span style="font-size:0.8rem;color:#888;">NOW PLAYING</span><br>${data.song}`;
             }
         });
 
+        // ─── 4. Écoute visibilité des votes ───────────────────────────────────────
         onValue(ref(db, 'live/votesVisible'), (snap) => {
             const visible = snap.val();
             const vc = document.getElementById('votes-container');
@@ -1028,6 +1060,7 @@
             if (vr) vr.style.display = visible ? 'flex'  : 'none';
         });
 
+        // ─── 5. Écoute votes en temps réel (re-utilise la logique du maître) ──────
         let currentPollId = 1;
         let currentVoteRef = null;
 
@@ -1054,21 +1087,4 @@
                 });
             });
 
-            onValue(ref(db, `config/session_${id}/titles`), (tsnap) => {
-                const titles = tsnap.val() || {m1:'', m2:'', m3:''};
-                ['m1','m2','m3'].forEach(k => {
-                    const lbl = document.getElementById('label-'+k);
-                    if (lbl) lbl.innerText = titles[k] || '';
-                });
-            });
-        });
-
-        let offlineTimer = null;
-        onValue(ref(db, 'live/heartbeat'), () => {
-            setOnline(true);
-            clearTimeout(offlineTimer);
-            offlineTimer = setTimeout(() => setOnline(false), 10000);
-        });
-    </script>
-</body>
-</html>
+            //
