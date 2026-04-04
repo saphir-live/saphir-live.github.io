@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Visualizer Pro avec Clavier 88 Touches</title>
+    <style>
+        :root {
+            --key-width: 1.1vw; /* Ajuste la largeur des touches par rapport à l'écran */
+            --key-height: 15vh;
+            --black-key-width: 0.7vw;
+            --black-key-height: 9vh;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100%;
+        }
+
+        /* Zone d'animation */
+        #canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+            pointer-events: none;
+            z-index: 10;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        /* Conteneur du clavier virtuel */
+        #keyboard-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--key-height);
+            display: flex;
+            justify-content: center; /* Centre le clavier si l'écran est trop large */
+            background: #111;
+            z-index: 5;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+            padding-bottom: 5px;
+        }
+
+        #piano-keyboard {
+            position: relative;
+            display: flex;
+            height: 100%;
+            /* Largeur exacte pour 52 touches blanches */
+            width: calc(52 * var(--key-width)); 
+        }
+
+        /* Touches Blanches */
+        .key {
+            width: var(--key-width);
+            height: 100%;
+            background: whitesmoke;
+            border: 1px solid #ccc;
+            border-radius: 0 0 4px 4px;
+            box-sizing: border-box;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.1s, transform 0.05s;
+            z-index: 1;
+        }
+
+        .key:active {
+            transform: translateY(2px);
+        }
+
+        /* Style d'activation (quand pressé physiquement ou cliqué) */
+        .key.active {
+            background: #ffe082 !important; /* Couleur par défaut si pas de couleur de note */
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Touches Noires */
+        .key.black {
+            width: var(--black-key-width);
+            height: var(--black-key-height);
+            background: #222;
+            border: 1px solid #000;
+            position: absolute;
+            z-index: 2;
+            margin-left: calc(var(--black-key-width) / -2); /* Centre sur l'intersection */
+        }
+
+        .key.black.active {
+            background: #bf360c !important;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="status">En attente de connexion MIDI...</div>
+    <canvas id="canvas"></canvas>
+    
+    <div id="keyboard-container">
+        <div id="piano-keyboard">
+            </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION CANVAS & PARTICULES ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor(note, velocity) {
+                // Position X basée sur la note (MIDI 21 à 108 pour 88 touches)
+                const normalizedNote = (note - 21) / (108 - 21);
+                this.x = normalizedNote * canvas.width;
+                // Partir juste au-dessus du clavier virtuel
+                this.y = canvas.height - (window.innerHeight * 0.15); 
+                
+                this.size = (velocity / 127) * 35 + 5;
+                this.speedY = (velocity / 127) * -12 - 3;
+                this.speedX = (Math.random() - 0.5) * 3;
+                
+                // Couleur unique par note
+                const hue = (note * 12) % 360;
+                this.colorBase = `hsla(${hue}, 90%, 65%, `;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.015 + 0.008;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.colorBase + this.alpha + ')';
+                ctx.fill();
+                
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.colorBase + '0.6)';
+            }
+
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                this.alpha -= this.decay;
+                this.size *= 0.98; // Rétrécit en montant
+            }
+        }
+
+        function createAnimationNote(note, velocity) {
+            const count = Math.floor((velocity / 127) * 4) + 1;
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(note, velocity));
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Effet de traînée
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.shadowBlur = 0;
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // --- GÉNÉRATION DU CLAVIER VIRTUEL (88 Touches) ---
+        const keyboard = document.getElementById('piano-keyboard');
+        // Structure d'une octave (W=White, B=Black)
+        // Partant de LA (A), note 21
+        const octaveStructure = ['W', 'B', 'W', 'W', 'B', 'W', 'B', 'W', 'W', 'B', 'W', 'B'];
+        const noteNames = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+
+        function buildKeyboard() {
+            let whiteKeyCount = 0;
+
+            for (let midiNote = 21; midiNote <= 108; midiNote++) {
+                const key = document.createElement('div');
+                key.id = `key-${midiNote}`;
+                
+                // Déterminer le type de touche
+                const noteIndex = (midiNote - 21) % 12;
+                const type = octaveStructure[noteIndex];
+                
+                key.classList.add('key');
+                if (type === 'B') {
+                    key.classList.add('black');
+                    // Positionner la touche noire par rapport à la touche blanche précédente
+                    key.style.left = `calc(${whiteKeyCount * var(--key-width)} - ${var(--black-key-width)} / 2)`;
+                } else {
+                    key.classList.add('white');
+                    whiteKeyCount++;
+                }
+
+                // Interaction Souris (pour jouer sans clavier physique)
+                key.addEventListener('mousedown', () => pressKey(midiNote, 70));
+                key.addEventListener('mouseup', () => releaseKey(midiNote));
+                key.addEventListener('mouseleave', () => releaseKey(midiNote)); // Si on glisse hors de la touche
+                
+                keyboard.appendChild(key);
+            }
+        }
+
+        // --- GESTION DES ÉTATS DE TOUCHES ---
+        function pressKey(note, velocity) {
+            const keyEl = document.getElementById(`key-${note}`);
+            if (keyEl) {
+                keyEl.classList.add('active');
+                // Optionnel : Ajoute la couleur de l'animation à la touche
+                const hue = (note * 12) % 360;
+                keyEl.style.backgroundColor = `hsl(${hue}, 90%, 70%)`;
+            }
+            createAnimationNote(note, velocity);
+        }
+
+        function releaseKey(note) {
+            const keyEl = document.getElementById(`key-${note}`);
+            if (keyEl) {
+                keyEl.classList.remove('active');
+                keyEl.style.backgroundColor = ''; // Reset couleur
+            }
+        }
+
+        // --- CONFIGURATION MIDI ---
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+            status.innerHTML = "Navigateur non compatible Web MIDI (Utilisez Chrome/Edge).";
+        }
+
+        function onMIDISuccess(midiAccess) {
+            const inputs = midiAccess.inputs.values();
+            for (let input of inputs) {
+                input.onmidimessage = getMIDIMessage;
+                status.innerHTML = `Connecté : ${input.name}`;
+            }
+            midiAccess.onstatechange = (e) => {
+                if(e.port.type === 'input') {
+                    status.innerHTML = `Clavier ${e.port.name} ${e.port.state}`;
+                }
+            };
+        }
+
+        function getMIDIMessage(message) {
+            const command = message.data[0];
+            const note = message.data[1];
+            // Yamaha envoie souvent 144 avec vélocité 0 pour un NoteOff
+            const velocity = (message.data.length > 2) ? message.data[2] : 0;
+
+            // Filtre pour n'écouter que sur les touches de piano (21-108)
+            if (note < 21 || note > 108) return;
+
+            // Note On
+            if (command === 144 && velocity > 0) {
+                pressKey(note, velocity);
+            } 
+            // Note Off (soit commande 128, soit commande 144 avec vélocité 0)
+            else if (command === 128 || (command === 144 && velocity === 0)) {
+                releaseKey(note);
+            }
+        }
+
+        function onMIDIFailure() {
+            status.innerHTML = "Accès MIDI refusé ou impossible.";
+        }
+
+        // --- DÉMARRAGE ---
+        buildKeyboard();
+        animate();
+
+    </script>
+</body>
+</html>
