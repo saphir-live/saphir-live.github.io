@@ -1694,10 +1694,13 @@
                         document.getElementById('status').innerText = "🎹 " + input.name;
                         input.onmidimessage = (m) => {
                             const [s, n, v] = m.data;
-                            if (s === 144 && v > 0)
+                            if (s === 144 && v > 0) {
                                 triggerEffect(n, v);
-                            else if (s === 128 || (s === 144 && v === 0))
+                                syncEvent(n, v, 'on');
+                            } else if (s === 128 || (s === 144 && v === 0)) {
                                 stopNote(n);
+                                syncEvent(n, 0, 'off');
+                            }
                         };
                     }
                 });
@@ -1951,6 +1954,21 @@
                 const votes = document.getElementById('votes-report');
                 votes.style = `display:none;`;
             }
+
+            // Fonction pour synchroniser avec l'esclave
+        function syncEvent(note, vel, type) {
+            const mode = document.getElementById('animType').value;
+            const title = document.getElementById('songTitle').value;
+            
+            set(ref(db, 'live_piano/event'), {
+                note: note,
+                vel: vel,
+                type: type, // 'on' ou 'off'
+                mode: mode,
+                title: title,
+                ts: Date.now() // Important pour forcer la mise à jour
+            });
+        }
 
             let currentCountListener = null;
 
