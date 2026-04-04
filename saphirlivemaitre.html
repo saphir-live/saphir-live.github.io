@@ -1814,8 +1814,9 @@
                 // 1. Applique le mode
                 animSelector.value = song.mode;
                 
-                if (window.publishTitle) publishTitle(titleInput.value, song.title);
                 updateBackgroundImage();
+                if (window.publishTitle) publishTitle(titleInput.value, song.title);
+                if (window.publishMode)  publishMode(song.mode); 
 
                 // 2. Affiche le titre en haut à droite
                 const display = document.getElementById('current-song-display');
