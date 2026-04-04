@@ -1020,11 +1020,18 @@
         });
 
         // ─── 2. Écoute du mode d'animation ────────────────────────────────────────
+        // Le maître écrit { mode, ts } — le ts force le trigger même si le mode est identique
+        let lastModeTs = 0;
         onValue(ref(db, 'live/mode'), (snap) => {
-            const mode = snap.val();
+            const data = snap.val();
+            if (!data) return;
+            // Compatibilité : string directe OU objet { mode, ts }
+            const mode = (typeof data === 'object') ? data.mode : data;
+            const ts   = (typeof data === 'object') ? (data.ts || 0) : 0;
             if (!mode) return;
+            if (ts && ts <= lastModeTs) return;
+            lastModeTs = ts || Date.now();
             setOnline(true);
-            // Toujours appliquer sans condition de garde
             window.animSelector.value = mode;
             window.updateBackgroundImage();
             const mi = document.getElementById('mode-indicator');
@@ -1080,23 +1087,4 @@
                 });
             });
 
-            // Labels des titres de session
-            onValue(ref(db, `config/session_${id}/titles`), (tsnap) => {
-                const titles = tsnap.val() || {m1:'', m2:'', m3:''};
-                ['m1','m2','m3'].forEach(k => {
-                    const lbl = document.getElementById('label-'+k);
-                    if (lbl) lbl.innerText = titles[k] || '';
-                });
-            });
-        });
-
-        // ─── Indicateur : offline après 10 s sans message ─────────────────────────
-        let offlineTimer = null;
-        onValue(ref(db, 'live/heartbeat'), () => {
-            setOnline(true);
-            clearTimeout(offlineTimer);
-            offlineTimer = setTimeout(() => setOnline(false), 10000);
-        });
-    </script>
-</body>
-</html>
+            //
