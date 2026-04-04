@@ -148,6 +148,40 @@
             requestAnimationFrame(draw);
         }
         draw();
+        // --- MODE DÉMO (BOUCLE AUTOMATIQUE) ---
+let demoInterval = null;
+const demoNotes = [60, 64, 67, 72, 67, 64]; // Do, Mi, Sol, Do(octave), Sol, Mi
+let currentStep = 0;
+
+function toggleDemo() {
+    if (demoInterval) {
+        clearInterval(demoInterval);
+        demoInterval = null;
+        status.innerHTML += " | Démo OFF";
+    } else {
+        status.innerHTML += " | Démo ON";
+        demoInterval = setInterval(() => {
+            const note = demoNotes[currentStep];
+            
+            // 1. Simuler l'appui (Note On)
+            sendNoteToFirebase(note, 80, 'on');
+            
+            // 2. Simuler le relâchement (Note Off) après 400ms
+            setTimeout(() => {
+                sendNoteToFirebase(note, 0, 'off');
+            }, 400);
+
+            currentStep = (currentStep + 1) % demoNotes.length;
+        }, 600); // Joue une note toutes les 600ms
+    }
+}
+
+// Ajouter un bouton de contrôle discret à l'écran
+const demoBtn = document.createElement('button');
+demoBtn.innerText = "Démarrer Boucle de Test";
+demoBtn.style = "position:absolute; top:70px; left:10px; z-index:100; padding:8px; cursor:pointer; background:#333; color:white; border:1px solid #555; border-radius:5px;";
+demoBtn.onclick = toggleDemo;
+document.body.appendChild(demoBtn);
     </script>
 </body>
 </html>
