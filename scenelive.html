@@ -3,231 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piano Visualizer - Mode Saphir</title>
+    <title>Piano Sync Realtime - Saphir</title>
     <style>
-        :root {
-            --key-width: 1.8vw; 
-            --key-height: 180px;
-            --black-key-width: 1.1vw;
-            --black-key-height: 110px;
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #050505;
-            font-family: 'Segoe UI', sans-serif;
-            height: 100%;
-        }
-
-        #canvas {
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: calc(100% - var(--key-height));
-            z-index: 1;
-        }
-
-        #status {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #fff;
-            font-size: 0.8em;
-            z-index: 10;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 15px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        /* Conteneur du clavier toujours visible */
-        #keyboard-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: var(--key-height);
-            background: #111;
-            display: flex;
-            justify-content: center;
-            z-index: 5;
-            border-top: 4px solid #222;
-        }
-
-        #piano-keyboard {
-            position: relative;
-            display: flex;
-            height: 100%;
-        }
-
-        .key {
-            width: var(--key-width);
-            height: 100%;
-            background: #eee;
-            border: 1px solid #333;
-            border-radius: 0 0 5px 5px;
-            box-sizing: border-box;
-            cursor: pointer;
-            z-index: 1;
-            transition: background 0.05s;
-        }
-
-        .key.white:hover { background: #fff; }
-
-        .key.black {
-            width: var(--black-key-width);
-            height: var(--black-key-height);
-            background: #222;
-            position: absolute;
-            z-index: 2;
-            margin-left: calc(var(--black-key-width) / -2);
-            border: 1px solid #000;
-        }
-
-        /* Effet quand la touche est pressée */
-        .key.active {
-            transform: translateY(2px);
-            filter: brightness(1.2);
-            box-shadow: 0 0 20px var(--note-color);
-        }
-
-        .instructions {
-            position: absolute;
-            top: 60px;
-            left: 20px;
-            color: rgba(255,255,255,0.4);
-            font-size: 0.7em;
-            z-index: 10;
-        }
+        :root { --key-width: 1.8vw; --key-height: 180px; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #050505; color: white; font-family: sans-serif; }
+        #canvas { display: block; height: calc(100% - var(--key-height)); width: 100%; }
+        #keyboard-container { position: absolute; bottom: 0; width: 100%; height: var(--key-height); background: #111; display: flex; justify-content: center; border-top: 4px solid #222; }
+        #piano-keyboard { position: relative; display: flex; height: 100%; }
+        .key { width: var(--key-width); height: 100%; background: #eee; border: 1px solid #333; border-radius: 0 0 5px 5px; cursor: pointer; position: relative; }
+        .key.black { width: 1.1vw; height: 110px; background: #222; position: absolute; z-index: 2; margin-left: -0.55vw; }
+        .key.active { filter: brightness(1.5); box-shadow: 0 0 20px var(--note-color); transform: translateY(2px); }
+        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; font-size: 12px; z-index: 100; }
     </style>
 </head>
 <body>
 
-    <div id="status">Recherche du Yamaha USB...</div>
-    <div class="instructions">Utilisez la souris ou les touches [A, Z, E, R, T, Y, U] pour tester sans piano.</div>
-    <canvas id="canvas"></canvas>
-    
-    <div id="keyboard-container">
-        <div id="piano-keyboard"></div>
+    <div id="status">
+        MIDI: <span id="midi-info">Déconnecté</span><br>
+        Firebase: <span id="fb-info">Initialisation...</span>
     </div>
 
-    <script>
+    <canvas id="canvas"></canvas>
+    <div id="keyboard-container"><div id="piano-keyboard"></div></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+  authDomain: "saphir-live.firebaseapp.com",
+  databaseURL: "https://saphir-live-default-rtdb.firebaseio.com",
+  projectId: "saphir-live",
+  storageBucket: "saphir-live.firebasestorage.app",
+  messagingSenderId: "719917557935",
+  appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+  measurementId: "G-VQQ9H234NB"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const pianoRef = ref(db, 'live_piano');
+
+        // --- LOGIQUE VISUELLE ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const status = document.getElementById('status');
-        const keyboard = document.getElementById('piano-keyboard');
         let particles = [];
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 180;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 180; }
+        window.onresize = resize; resize();
 
-        // Particules de lumière
         class Particle {
             constructor(note, velocity) {
-                const normalized = (note - 21) / (108 - 21);
-                this.x = normalized * canvas.width;
+                this.x = ((note - 21) / 87) * canvas.width;
                 this.y = canvas.height;
-                this.size = (velocity / 127) * 30 + 5;
-                this.speedY = (velocity / 127) * -10 - 2;
-                this.speedX = (Math.random() - 0.5) * 2;
-                const hue = (note * 137.5) % 360; // Distribution plus variée des couleurs
+                this.size = (velocity / 127) * 25 + 5;
+                this.speedY = (velocity / 127) * -8 - 2;
+                const hue = (note * 137.5) % 360;
                 this.color = `hsla(${hue}, 80%, 60%, `;
                 this.alpha = 1;
             }
+            update() { this.y += this.speedY; this.alpha -= 0.01; }
             draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color + this.alpha + ')';
-                ctx.fill();
-            }
-            update() {
-                this.y += this.speedY;
-                this.x += this.speedX;
-                this.alpha -= 0.01;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                ctx.fillStyle = this.color + this.alpha + ')'; ctx.fill();
             }
         }
 
-        // Génération du clavier 88 touches
-        const pattern = ['W', 'B', 'W', 'W', 'B', 'W', 'B', 'W', 'W', 'B', 'W', 'B'];
-        function build() {
-            let whites = 0;
-            for (let i = 21; i <= 108; i++) {
-                const type = pattern[(i - 21) % 12];
-                const key = document.createElement('div');
-                key.id = `k-${i}`;
-                key.className = `key ${type === 'W' ? 'white' : 'black'}`;
-                
-                if (type === 'B') {
-                    key.style.left = `calc(${whites * 1.8}vw - (1.1vw / 2))`;
-                } else {
-                    whites++;
-                }
-
-                key.onmousedown = () => noteOn(i, 80);
-                key.onmouseup = () => noteOff(i);
-                keyboard.appendChild(key);
-            }
+        // --- CLAVIER ---
+        const pattern = ['W','B','W','W','B','W','B','W','W','B','W','B'];
+        const keyboard = document.getElementById('piano-keyboard');
+        let whites = 0;
+        for (let i = 21; i <= 108; i++) {
+            const type = pattern[(i - 21) % 12];
+            const key = document.createElement('div');
+            key.id = `k-${i}`;
+            key.className = `key ${type === 'W' ? 'white' : 'black'}`;
+            if (type === 'B') key.style.left = `calc(${whites * 1.8}vw - 0.55vw)`;
+            else whites++;
+            keyboard.appendChild(key);
         }
 
-        function noteOn(note, vel) {
+        // --- SYNCHRO FIREBASE ---
+        // Envoyer une note vers le cloud (Émetteur)
+        function sendNoteToFirebase(note, velocity, type) {
+            set(ref(db, 'live_piano/last_event'), {
+                note: note,
+                vel: velocity,
+                type: type, // 'on' ou 'off'
+                time: Date.now()
+            });
+        }
+
+        // Écouter les notes du cloud (Récepteur)
+        onValue(ref(db, 'live_piano/last_event'), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+            
+            if (data.type === 'on') {
+                triggerLocalNoteOn(data.note, data.vel);
+            } else {
+                triggerLocalNoteOff(data.note);
+            }
+        });
+
+        function triggerLocalNoteOn(note, vel) {
             const el = document.getElementById(`k-${note}`);
             if (el) {
-                const hue = (note * 137.5) % 360;
                 el.classList.add('active');
-                el.style.setProperty('--note-color', `hsla(${hue}, 80%, 60%, 0.5)`);
-                el.style.backgroundColor = `hsl(${hue}, 80%, 70%)`;
+                el.style.setProperty('--note-color', `hsla(${(note * 137.5) % 360}, 80%, 60%, 0.6)`);
             }
             particles.push(new Particle(note, vel));
         }
 
-        function noteOff(note) {
+        function triggerLocalNoteOff(note) {
             const el = document.getElementById(`k-${note}`);
-            if (el) {
-                el.classList.remove('active');
-                el.style.backgroundColor = '';
-            }
+            if (el) el.classList.remove('active');
         }
 
-        // Animation Loop
+        // --- MIDI (Émetteur vers Firebase) ---
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(access => {
+                document.getElementById('fb-info').innerText = "Connecté à Firebase";
+                const inputs = access.inputs.values();
+                for (let input of inputs) {
+                    document.getElementById('midi-info').innerText = input.name;
+                    input.onmidimessage = (m) => {
+                        const [cmd, note, vel] = m.data;
+                        if (cmd === 144 && vel > 0) sendNoteToFirebase(note, vel, 'on');
+                        else if (cmd === 128 || (cmd === 144 && vel === 0)) sendNoteToFirebase(note, 0, 'off');
+                    };
+                }
+            });
+        }
+
+        // Boucle d'animation
         function draw() {
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(5,5,5,0.2)';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
             particles.forEach((p, i) => {
                 p.update(); p.draw();
                 if (p.alpha <= 0) particles.splice(i, 1);
             });
             requestAnimationFrame(draw);
         }
-
-        // MIDI Setup
-        if (navigator.requestMIDIAccess) {
-            navigator.requestMIDIAccess().then(access => {
-                const inputs = access.inputs.values();
-                for (let input of inputs) {
-                    status.innerHTML = "Connecté : " + input.name;
-                    input.onmidimessage = (m) => {
-                        const [cmd, note, vel] = m.data;
-                        if (cmd === 144 && vel > 0) noteOn(note, vel);
-                        else if (cmd === 128 || (cmd === 144 && vel === 0)) noteOff(note);
-                    };
-                }
-            });
-        }
-
-        // Support clavier ordi (A, Z, E, R, T, Y, U...) pour tester
-        const keyMap = {'a':60, 'z':62, 'e':64, 'r':65, 't':67, 'y':69, 'u':71};
-        window.onkeydown = (e) => { if(keyMap[e.key]) noteOn(keyMap[e.key], 90); };
-        window.onkeyup = (e) => { if(keyMap[e.key]) noteOff(keyMap[e.key]); };
-
-        build();
         draw();
     </script>
 </body>
