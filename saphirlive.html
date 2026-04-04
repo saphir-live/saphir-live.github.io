@@ -659,7 +659,7 @@
                 ctx.textAlign="center"; ctx.textBaseline="middle";
                 ctx.shadowBlur=25*titleScale; ctx.shadowColor=`hsl(${titleHue},100%,50%)`;
                 ctx.fillStyle="white"; ctx.font=`bold ${65*titleScale}px Arial`;
-                ctx.fillText(titleInput.value.toUpperCase(), canvas.width/2, canvas.height/2);
+                ctx.fillText(String(titleInput.value || 'SAPHIR LIVE!').toUpperCase(), canvas.width/2, canvas.height/2);
                 if (titleScale>1) titleScale-=0.01;
                 ctx.restore();
             } else {
@@ -1021,6 +1021,7 @@
 
         // ─── 2. Écoute du mode d'animation ────────────────────────────────────────
         // Le maître écrit { mode, ts } — le ts force le trigger même si le mode est identique
+        // On initialise à 0 pour accepter le premier event Firebase au chargement
         let lastModeTs = 0;
         onValue(ref(db, 'live/mode'), (snap) => {
             const data = snap.val();
@@ -1029,8 +1030,6 @@
             const mode = (typeof data === 'object') ? data.mode : data;
             const ts   = (typeof data === 'object') ? (data.ts || 0) : 0;
             if (!mode) return;
-            if (ts && ts <= lastModeTs) return;
-            lastModeTs = ts || Date.now();
             setOnline(true);
             window.animSelector.value = mode;
             window.updateBackgroundImage();
@@ -1044,10 +1043,13 @@
         onValue(ref(db, 'live/title'), (snap) => {
             const data = snap.val();
             if (!data) return;
-            window.titleInput.value = data.text || 'SAPHIR LIVE!';
+            // Compatibilité : string directe OU objet { text, song, ts }
+            const text = (typeof data === 'object') ? (data.text || 'SAPHIR LIVE!') : String(data);
+            const song = (typeof data === 'object') ? (data.song || '') : '';
+            window.titleInput.value = text;
             const display = document.getElementById('current-song-display');
-            if (data.song) {
-                display.innerHTML = `<span style="font-size:0.8rem;color:#888;">NOW PLAYING</span><br>${data.song}`;
+            if (song) {
+                display.innerHTML = `<span style="font-size:0.8rem;color:#888;">NOW PLAYING</span><br>${song}`;
             }
         });
 
@@ -1087,4 +1089,23 @@
                 });
             });
 
-            //
+            // Labels des titres de session
+            onValue(ref(db, `config/session_${id}/titles`), (tsnap) => {
+                const titles = tsnap.val() || {m1:'', m2:'', m3:''};
+                ['m1','m2','m3'].forEach(k => {
+                    const lbl = document.getElementById('label-'+k);
+                    if (lbl) lbl.innerText = titles[k] || '';
+                });
+            });
+        });
+
+        // ─── Indicateur : offline après 10 s sans message ─────────────────────────
+        let offlineTimer = null;
+        onValue(ref(db, 'live/heartbeat'), () => {
+            setOnline(true);
+            clearTimeout(offlineTimer);
+            offlineTimer = setTimeout(() => setOnline(false), 10000);
+        });
+    </script>
+</body>
+</html>
