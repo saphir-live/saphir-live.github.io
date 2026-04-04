@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SAPHIR LIVE — Écran Esclave</title>
+    <title>SAPHIR LIVE — Écran Scène</title>
     <style>
         :root {
             --neon: #00e5ff;
@@ -280,18 +280,21 @@
         const ctx     = canvas.getContext('2d');
 
         // Proxy pour animSelector (pas de <select> réel sur l'esclave)
+        // Exposé sur window pour être accessible depuis le module Firebase
         let _currentMode = 'titleMode';
-        const animSelector = {
+        window.animSelector = {
             get value() { return _currentMode; },
             set value(v) { _currentMode = v; }
         };
+        const animSelector = window.animSelector;
 
-        // Proxy pour titleInput
+        // Proxy pour titleInput — aussi exposé sur window
         let _currentTitle = 'SAPHIR LIVE!';
-        const titleInput = {
+        window.titleInput = {
             get value() { return _currentTitle; },
             set value(v) { _currentTitle = v; }
         };
+        const titleInput = window.titleInput;
 
         const modeIndicator = document.getElementById('mode-indicator');
 
@@ -329,6 +332,7 @@
             const img  = backgrounds[mode];
             document.body.style.backgroundImage = img ? `url('${img}')` : 'none';
         }
+        window.updateBackgroundImage = updateBackgroundImage;
 
         // ─── Clavier virtuel (invisible) ──────────────────────────────────────────
         // Crée des éléments absolument positionnés hors-écran pour que
@@ -1000,15 +1004,15 @@
         }
 
         // ─── 1. Écoute des notes (noteOn / noteOff) ───────────────────────────────
-        // Le maître écrit dans  live/note  un objet { note, vel, ts, type:'on'|'off' }
-        // à chaque événement MIDI.
+        let lastNoteTs = 0;
         onValue(ref(db, 'live/note'), (snap) => {
             const data = snap.val();
             if (!data) return;
+            // Ignorer les vieux events (au chargement Firebase renvoie la dernière valeur)
+            if (data.ts <= lastNoteTs) return;
+            lastNoteTs = data.ts;
             setOnline(true);
-
             if (data.type === 'on') {
-                // Rejouer l'effet côté esclave
                 triggerEffect(data.note, data.vel);
             } else if (data.type === 'off') {
                 stopNote(data.note);
@@ -1019,20 +1023,21 @@
         onValue(ref(db, 'live/mode'), (snap) => {
             const mode = snap.val();
             if (!mode) return;
-            if (animSelector.value !== mode) {
-                animSelector.value = mode;
-                updateBackgroundImage();
-                modeIndicator.innerText = mode;
-                modeIndicator.style.opacity = '1';
-                setTimeout(() => { modeIndicator.style.opacity = '0'; }, 1500);
-            }
+            setOnline(true);
+            // Toujours appliquer sans condition de garde
+            window.animSelector.value = mode;
+            window.updateBackgroundImage();
+            const mi = document.getElementById('mode-indicator');
+            mi.innerText = mode;
+            mi.style.opacity = '1';
+            setTimeout(() => { mi.style.opacity = '0'; }, 1500);
         });
 
         // ─── 3. Écoute du titre ────────────────────────────────────────────────────
         onValue(ref(db, 'live/title'), (snap) => {
             const data = snap.val();
             if (!data) return;
-            titleInput.value = data.text || 'SAPHIR LIVE!';
+            window.titleInput.value = data.text || 'SAPHIR LIVE!';
             const display = document.getElementById('current-song-display');
             if (data.song) {
                 display.innerHTML = `<span style="font-size:0.8rem;color:#888;">NOW PLAYING</span><br>${data.song}`;
