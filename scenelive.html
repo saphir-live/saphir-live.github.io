@@ -2,33 +2,24 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piano Sync Realtime - Saphir</title>
+    <title>Vue Concert (Esclave) - Saphir</title>
     <style>
-        :root { --key-width: 1.8vw; --key-height: 180px; }
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #050505; color: white; font-family: sans-serif; }
-        #canvas { display: block; height: calc(100% - var(--key-height)); width: 100%; }
-        #keyboard-container { position: absolute; bottom: 0; width: 100%; height: var(--key-height); background: #111; display: flex; justify-content: center; border-top: 4px solid #222; }
-        #piano-keyboard { position: relative; display: flex; height: 100%; }
-        .key { width: var(--key-width); height: 100%; background: #eee; border: 1px solid #333; border-radius: 0 0 5px 5px; cursor: pointer; position: relative; }
-        .key.black { width: 1.1vw; height: 110px; background: #222; position: absolute; z-index: 2; margin-left: -0.55vw; }
-        .key.active { filter: brightness(1.5); box-shadow: 0 0 20px var(--note-color); transform: translateY(2px); }
-        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; font-size: 12px; z-index: 100; }
+        :root { --k-w: 1.8vw; }
+        body { margin: 0; background: #000; overflow: hidden; }
+        #canvas { display: block; width: 100vw; height: calc(100vh - 180px); }
+        #kb { position: absolute; bottom: 0; width: 100%; height: 180px; background: #111; display: flex; justify-content: center; border-top: 2px solid #333; }
+        .key { width: var(--k-w); height: 100%; background: #ddd; border: 1px solid #222; border-radius: 0 0 5px 5px; box-sizing: border-box; }
+        .key.b { width: 1.1vw; height: 110px; background: #222; position: absolute; z-index: 2; margin-left: -0.55vw; }
+        .active { filter: brightness(1.5); box-shadow: 0 0 30px var(--c); background: var(--c) !important; }
     </style>
 </head>
 <body>
-
-    <div id="status">
-        MIDI: <span id="midi-info">Déconnecté</span><br>
-        Firebase: <span id="fb-info">Initialisation...</span>
-    </div>
-
     <canvas id="canvas"></canvas>
-    <div id="keyboard-container"><div id="piano-keyboard"></div></div>
+    <div id="kb"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, onChildAdded } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
   apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
@@ -40,148 +31,55 @@
   appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
   measurementId: "G-VQQ9H234NB"
 };
-
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const pianoRef = ref(db, 'live_piano');
 
-        // --- LOGIQUE VISUELLE ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 180; }
-        window.onresize = resize; resize();
-
-        class Particle {
-            constructor(note, velocity) {
-                this.x = ((note - 21) / 87) * canvas.width;
-                this.y = canvas.height;
-                this.size = (velocity / 127) * 25 + 5;
-                this.speedY = (velocity / 127) * -8 - 2;
-                const hue = (note * 137.5) % 360;
-                this.color = `hsla(${hue}, 80%, 60%, `;
-                this.alpha = 1;
-            }
-            update() { this.y += this.speedY; this.alpha -= 0.01; }
-            draw() {
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-                ctx.fillStyle = this.color + this.alpha + ')'; ctx.fill();
-            }
-        }
-
-        // --- CLAVIER ---
-        const pattern = ['W','B','W','W','B','W','B','W','W','B','W','B'];
-        const keyboard = document.getElementById('piano-keyboard');
+        // Setup Clavier
+        const kb = document.getElementById('kb');
+        const pattern = ['w','b','w','w','b','w','b','w','w','b','w','b'];
         let whites = 0;
         for (let i = 21; i <= 108; i++) {
-            const type = pattern[(i - 21) % 12];
-            const key = document.createElement('div');
-            key.id = `k-${i}`;
-            key.className = `key ${type === 'W' ? 'white' : 'black'}`;
-            if (type === 'B') key.style.left = `calc(${whites * 1.8}vw - 0.55vw)`;
+            const k = document.createElement('div');
+            k.id = `k-${i}`;
+            const type = pattern[(i-21)%12];
+            k.className = `key ${type}`;
+            if(type === 'b') k.style.left = `calc(${whites * 1.8}vw - 0.55vw)`;
             else whites++;
-            keyboard.appendChild(key);
+            kb.appendChild(k);
         }
 
-        // --- SYNCHRO FIREBASE ---
-        // Envoyer une note vers le cloud (Émetteur)
-        function sendNoteToFirebase(note, velocity, type) {
-            set(ref(db, 'live_piano/last_event'), {
-                note: note,
-                vel: velocity,
-                type: type, // 'on' ou 'off'
-                time: Date.now()
-            });
-        }
-
-        // Écouter les notes du cloud (Récepteur)
-        onValue(ref(db, 'live_piano/last_event'), (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-            
-            if (data.type === 'on') {
-                triggerLocalNoteOn(data.note, data.vel);
-            } else {
-                triggerLocalNoteOff(data.note);
-            }
-        });
-
-        function triggerLocalNoteOn(note, vel) {
-            const el = document.getElementById(`k-${note}`);
-            if (el) {
-                el.classList.add('active');
-                el.style.setProperty('--note-color', `hsla(${(note * 137.5) % 360}, 80%, 60%, 0.6)`);
-            }
-            particles.push(new Particle(note, vel));
-        }
-
-        function triggerLocalNoteOff(note) {
-            const el = document.getElementById(`k-${note}`);
-            if (el) el.classList.remove('active');
-        }
-
-        // --- MIDI (Émetteur vers Firebase) ---
-        if (navigator.requestMIDIAccess) {
-            navigator.requestMIDIAccess().then(access => {
-                document.getElementById('fb-info').innerText = "Connecté à Firebase";
-                const inputs = access.inputs.values();
-                for (let input of inputs) {
-                    document.getElementById('midi-info').innerText = input.name;
-                    input.onmidimessage = (m) => {
-                        const [cmd, note, vel] = m.data;
-                        if (cmd === 144 && vel > 0) sendNoteToFirebase(note, vel, 'on');
-                        else if (cmd === 128 || (cmd === 144 && vel === 0)) sendNoteToFirebase(note, 0, 'off');
-                    };
-                }
-            });
-        }
-
-        // Boucle d'animation
+        // Animation
         function draw() {
-            ctx.fillStyle = 'rgba(5,5,5,0.2)';
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.fillRect(0,0,canvas.width, canvas.height);
             particles.forEach((p, i) => {
-                p.update(); p.draw();
-                if (p.alpha <= 0) particles.splice(i, 1);
+                p.y -= p.s; p.a -= 0.01;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7);
+                ctx.fillStyle = `hsla(${p.h}, 80%, 60%, ${p.a})`; ctx.fill();
+                if(p.a <= 0) particles.splice(i, 1);
             });
             requestAnimationFrame(draw);
         }
-        draw();
-        // --- MODE DÉMO (BOUCLE AUTOMATIQUE) ---
-let demoInterval = null;
-const demoNotes = [60, 64, 67, 72, 67, 64]; // Do, Mi, Sol, Do(octave), Sol, Mi
-let currentStep = 0;
+        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight-180; };
+        window.onresize(); draw();
 
-function toggleDemo() {
-    if (demoInterval) {
-        clearInterval(demoInterval);
-        demoInterval = null;
-        status.innerHTML += " | Démo OFF";
-    } else {
-        status.innerHTML += " | Démo ON";
-        demoInterval = setInterval(() => {
-            const note = demoNotes[currentStep];
-            
-            // 1. Simuler l'appui (Note On)
-            sendNoteToFirebase(note, 80, 'on');
-            
-            // 2. Simuler le relâchement (Note Off) après 400ms
-            setTimeout(() => {
-                sendNoteToFirebase(note, 0, 'off');
-            }, 400);
-
-            currentStep = (currentStep + 1) % demoNotes.length;
-        }, 600); // Joue une note toutes les 600ms
-    }
-}
-
-// Ajouter un bouton de contrôle discret à l'écran
-const demoBtn = document.createElement('button');
-demoBtn.innerText = "Démarrer Boucle de Test";
-demoBtn.style = "position:absolute; top:70px; left:10px; z-index:100; padding:8px; cursor:pointer; background:#333; color:white; border:1px solid #555; border-radius:5px;";
-demoBtn.onclick = toggleDemo;
-document.body.appendChild(demoBtn);
+        // Écoute Firebase
+        onValue(ref(db, 'live_piano/event'), (snap) => {
+            const data = snap.val();
+            if(!data) return;
+            const el = document.getElementById(`k-${data.note}`);
+            const hue = (data.note * 137.5) % 360;
+            if(data.type === 'on') {
+                if(el) { el.classList.add('active'); el.style.setProperty('--c', `hsl(${hue}, 80%, 60%)`); }
+                particles.push({ x: ((data.note-21)/87)*canvas.width, y: canvas.height, h: hue, a: 1, s: (data.vel/127)*5+2, size: (data.vel/127)*20+5 });
+            } else if(el) {
+                el.classList.remove('active');
+            }
+        });
     </script>
 </body>
 </html>
