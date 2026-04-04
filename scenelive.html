@@ -2,21 +2,19 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Vue Concert (Esclave) - Saphir</title>
+    <title>SAPHIR LIVE - Spectacle</title>
     <style>
-        :root { --k-w: 1.8vw; }
-        body { margin: 0; background: #000; overflow: hidden; }
-        #canvas { display: block; width: 100vw; height: calc(100vh - 180px); }
-        #kb { position: absolute; bottom: 0; width: 100%; height: 180px; background: #111; display: flex; justify-content: center; border-top: 2px solid #333; }
-        .key { width: var(--k-w); height: 100%; background: #ddd; border: 1px solid #222; border-radius: 0 0 5px 5px; box-sizing: border-box; }
-        .key.b { width: 1.1vw; height: 110px; background: #222; position: absolute; z-index: 2; margin-left: -0.55vw; }
-        .active { filter: brightness(1.5); box-shadow: 0 0 30px var(--c); background: var(--c) !important; }
+        body { margin: 0; overflow: hidden; background: #000; }
+        canvas { display: block; }
+        #remote-title { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; font-family: Arial; font-weight: bold; pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
-    <div id="kb"></div>
-
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -34,52 +32,35 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // Intégrer ici toute votre logique d'animation (Canvas, Particles, draw()...)
+        // ... (Copier les classes Particle, Flower, etc. de votre script d'origine)
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [];
 
-        // Setup Clavier
-        const kb = document.getElementById('kb');
-        const pattern = ['w','b','w','w','b','w','b','w','w','b','w','b'];
-        let whites = 0;
-        for (let i = 21; i <= 108; i++) {
-            const k = document.createElement('div');
-            k.id = `k-${i}`;
-            const type = pattern[(i-21)%12];
-            k.className = `key ${type}`;
-            if(type === 'b') k.style.left = `calc(${whites * 1.8}vw - 0.55vw)`;
-            else whites++;
-            kb.appendChild(k);
-        }
+        // ÉCOUTE DES ÉVÉNEMENTS MAÎTRE
+        onValue(ref(db, 'live_piano/event'), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
 
-        // Animation
-        function draw() {
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.fillRect(0,0,canvas.width, canvas.height);
-            particles.forEach((p, i) => {
-                p.y -= p.s; p.a -= 0.01;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7);
-                ctx.fillStyle = `hsla(${p.h}, 80%, 60%, ${p.a})`; ctx.fill();
-                if(p.a <= 0) particles.splice(i, 1);
-            });
-            requestAnimationFrame(draw);
-        }
-        window.onresize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight-180; };
-        window.onresize(); draw();
+            // Mise à jour dynamique du mode et du titre
+            const currentRemoteMode = data.mode;
+            const currentRemoteTitle = data.title;
 
-        // Écoute Firebase
-        onValue(ref(db, 'live_piano/event'), (snap) => {
-            const data = snap.val();
-            if(!data) return;
-            const el = document.getElementById(`k-${data.note}`);
-            const hue = (data.note * 137.5) % 360;
-            if(data.type === 'on') {
-                if(el) { el.classList.add('active'); el.style.setProperty('--c', `hsl(${hue}, 80%, 60%)`); }
-                particles.push({ x: ((data.note-21)/87)*canvas.width, y: canvas.height, h: hue, a: 1, s: (data.vel/127)*5+2, size: (data.vel/127)*20+5 });
-            } else if(el) {
-                el.classList.remove('active');
+            if (data.type === 'on') {
+                // Déclencher vos effets visuels (triggerEffect)
+                // Exemple : triggerLocalEffect(data.note, data.vel, currentRemoteMode);
+            } else {
+                // Arrêter l'effet (stopNote)
             }
         });
+
+        // Lancement de votre boucle d'animation draw()
+        function animate() {
+            // Votre logique de rendu d'origine
+            requestAnimationFrame(animate);
+        }
+        animate();
     </script>
 </body>
 </html>
