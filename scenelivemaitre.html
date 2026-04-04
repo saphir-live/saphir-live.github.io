@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Console Maître - Saphir</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; padding-top: 50px; }
+        .panel { background: #333; display: inline-block; padding: 30px; border-radius: 15px; border: 2px solid #444; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #e74c3c; color: white; border: none; border-radius: 5px; }
+        #log { margin-top: 20px; color: #888; font-family: monospace; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .online { background: #2ecc71; }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h1>🎹 Contrôle Maître</h1>
+        <p><span class="status-dot online"></span> MIDI : <span id="midi-status">Recherche...</span></p>
+        <hr>
+        <button id="btn-demo">Démarrer Boucle de Test</button>
+        <div id="log">En attente d'activité...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+  authDomain: "saphir-live.firebaseapp.com",
+  databaseURL: "https://saphir-live-default-rtdb.firebaseio.com",
+  projectId: "saphir-live",
+  storageBucket: "saphir-live.firebasestorage.app",
+  messagingSenderId: "719917557935",
+  appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+  measurementId: "G-VQQ9H234NB"
+};
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const log = document.getElementById('log');
+
+        function sendEvent(note, vel, type) {
+            set(ref(db, 'live_piano/event'), { note, vel, type, ts: Date.now() });
+            log.innerText = `Envoi: Note ${note} (${type})`;
+        }
+
+        // MIDI
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(access => {
+                const inputs = access.inputs.values();
+                for (let input of inputs) {
+                    document.getElementById('midi-status').innerText = input.name;
+                    input.onmidimessage = (m) => {
+                        const [cmd, note, vel] = m.data;
+                        if (cmd === 144 && vel > 0) sendEvent(note, vel, 'on');
+                        else if (cmd === 128 || (cmd === 144 && vel === 0)) sendEvent(note, 0, 'off');
+                    };
+                }
+            });
+        }
+
+        // Boucle de test
+        let interval = null;
+        document.getElementById('btn-demo').onclick = (e) => {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+                e.target.innerText = "Démarrer Boucle de Test";
+            } else {
+                e.target.innerText = "Arrêter la boucle";
+                interval = setInterval(() => {
+                    const n = 60 + Math.floor(Math.random() * 12);
+                    sendEvent(n, 80, 'on');
+                    setTimeout(() => sendEvent(n, 0, 'off'), 300);
+                }, 600);
+            }
+        };
+    </script>
+</body>
+</html>
