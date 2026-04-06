@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <title>SAPHIR LIVE!</title>
+        <style>
+            :root {
+                --neon: #00e5ff;
+                --bg: #000;
+            }
+
+            body {
+                margin: 0;
+                overflow: hidden;
+                background: #000;
+                font-family: 'Segoe UI', sans-serif;
+                background-size: cover;
+                background-position: center;
+                transition: background-image 1s ease-in-out; /* Transition douce entre les fonds */
+            }
+            body::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                z-index: -1;
+            }
+            canvas {
+                display: block;
+                background: transparent;
+            }
+
+            #ui {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                color: white;
+                z-index: 30;
+                background: rgba(0,0,0,0.8);
+                padding: 15px;
+                border-radius: 12px;
+                border: 1px solid #444;
+                backdrop-filter: blur(10px);
+                transition: opacity 0.5s ease;
+            }
+
+            input, select, button {
+                background: #222;
+                color: #fff;
+                border: 1px solid #555;
+                padding: 10px;
+                margin-top: 10px;
+                width: 100%;
+                cursor: pointer;
+                border-radius: 5px;
+                font-weight: bold;
+                box-sizing: border-box;
+            }
+
+            #kb-container {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 120px;
+                background: #000;
+                z-index: 20;
+            }
+
+            #keyboard {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                display: flex;
+            }
+            .key-white {
+                flex: 1;
+                background: #fff;
+                border: 1px solid #333;
+                border-radius: 0 0 5px 5px;
+                position: relative;
+                z-index: 1;
+                cursor: pointer;
+            }
+            .key-black {
+                position: absolute;
+                background: #000;
+                width: 0.85%;
+                height: 60%;
+                z-index: 2;
+                border-radius: 0 0 3px 3px;
+                transform: translateX(-50%);
+                border: 1px solid #222;
+                cursor: pointer;
+            }
+
+            #mode-indicator {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 1rem;
+                font-weight: bold;
+                text-transform: uppercase;
+                text-shadow: 0 0 20px rgba(255,255,255,0.5);
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s;
+                z-index: 100;
+            }
+
+            .hidden-ui #ui {
+                opacity: 0;
+                pointer-events: none;
+            }
+            .hidden-kb-container #kb-container {
+                opacity: 0;
+                pointer-events: none;
+            }
+            /*PLAYLIST*/
+            #current-song-display {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                color: #00d2ff;
+                font-size: 1.5rem;
+                font-weight: bold;
+                text-transform: uppercase;
+                text-shadow: 0 0 15px rgba(0, 210, 255, 0.7);
+                z-index: 100;
+                pointer-events: none;
+                text-align: right;
+            }
+
+            .playlist-item {
+                display: flex;
+                align-items: center;
+                background: #222;
+                padding: 5px;
+                margin-bottom: 5px;
+                border-radius: 4px;
+                gap: 5px;
+            }
+
+            .playlist-item span {
+                flex-grow: 1;
+                font-size: 0.9rem;
+            }
+            .playlist-item button {
+                width: auto;
+                padding: 2px 8px;
+                margin: 0;
+                font-size: 0.8rem;
+            }
+            .active-song {
+                border: 1px solid #00d2ff;
+                background: #113344;
+            }
+
+            #perf-report {
+                animation: fadeIn 0.5s ease-out, glowPulse 2s infinite alternate;
+            }
+
+            @keyframes glowPulse {
+                from {
+                    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+                }
+                to {
+                    box-shadow: 0 0 50px rgba(0, 210, 255, 0.8);
+                }
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -45%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+
+            #webcam-container {
+                position: absolute;
+                bottom: 180px; /* Au-dessus du clavier */
+                right: 20px;
+                width: 320px;
+                height: 180px;
+                border: 3px solid #00d2ff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+                z-index: 100;
+                background: #000;
+            }
+
+            #webcam {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transform: scaleX(-1); /* Effet miroir */
+            }
+
+            @keyframes pulse {
+                0% {
+                    opacity: 0.6;
+                }
+                50% {
+                    opacity: 1;
+                    text-shadow: 0 0 25px var(--neon);
+                }
+                100% {
+                    opacity: 0.6;
+                }
+            }
+
+            #session-indicator {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                font-family: 'Montserrat', sans-serif;
+                font-size: 0.9rem;
+                color: white;
+                background: rgba(255, 255, 255, 0.05);
+                padding: 10px 20px;
+                border-radius: 50px;
+                border: 1px solid rgba(0, 229, 255, 0.3);
+                letter-spacing: 2px;
+                z-index: 100;
+                text-align: center;
+            }
+
+            #current-session-number {
+                color: var(--neon);
+                font-weight: bold;
+                text-shadow: 0 0 10px var(--neon);
+            }
+
+            .dot {
+                height: 8px;
+                width: 8px;
+                background-color: var(--neon);
+                border-radius: 50%;
+                display: inline-block;
+                margin-right: 10px;
+                box-shadow: 0 0 8px var(--neon);
+                animation: blink 1.5s infinite;
+            }
+
+            @keyframes blink {
+                0% {
+                    opacity: 0.3;
+                }
+                50% {
+                    opacity: 1;
+                }
+                100% {
+                    opacity: 0.3;
+                }
+            }
+
+            .results-votes {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: flex-end;
+                gap: 60px;
+                padding-bottom: 100px;
+            }
+
+            .col {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 220px;
+            }
+
+            .bar-container {
+                width: 100px;
+                height: 45vh;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(0,229,255,0.2);
+                position: relative;
+                border-radius: 50px 50px 0 0;
+                overflow: hidden;
+            }
+
+            .fill {
+                position: absolute;
+                bottom: 0;
+                width: 96%;
+                height: 0%;
+                background: #008ba3;
+                box-shadow: 0 0 40px var(--neon);
+                transition: height 1.2s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+                border: 2px solid rgb(0, 210, 255);
+            }
+
+            .pct {
+                font-size: 4.5rem;
+                font-family: 'Cinzel', serif;
+                margin-top: 20px;
+                text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            }
+
+            .label {
+                font-size: 1.1rem;
+                text-transform: uppercase;
+                color: var(--neon);
+                letter-spacing: 2px;
+                text-align: center;
+                margin-top: 10px;
+                min-height: 3em;
+            }
+            .qrcode {
+                margin-top: 10px;
+                padding: 5px;
+                background: white;
+            }
+
+        </style>
+    </head>
+    <body>
+
+        <div id="votes-container" style="display:none;">
+          <div id="session-indicator">
+            <span class="dot"></span> VOTEZ SESSION <span id="current-session-number">1</span> EN COURS
+            <br /><img src="barcode.gif" alt="VOTEZ" class="qrcode" />
+          </div>
+        </div>
+
+        <div id="mode-indicator"></div>
+
+        <div id="ui">
+            <div id="status">🎹 En attente de connexion</div>
+            <input type="text" id="songTitle" placeholder="Titre..." value="SAPHIR LIVE!">
+            <select id="animType">
+                <option value="titleMode" selected>✨ Mode Titre Interactif</option>
+                <option value="gravity">🌌 Mode Poussière d'étoiles</option>
+                <option value="bgMode">🎨 Mode Flashy</option>
+                <option value="immersion">🌈 Mode Immersion</option>
+                <option value="staff">🎼 Mode Partition Défilante</option>
+                <option value="flowers">🌸 Mode Fleurs</option>
+                <option value="hearts">❤️ Mode Cœurs</option>
+                <!--<option value="paint">🎨 Mode Taches de Peinture</option>-->
+                <option value="lightTrail">⚡ Mode Écriture de Lumière</option>
+                <option value="neonRain">🌈 Mode Néon Rain</option>
+                <option value="aurora">🌌 Mode Lumières Boréales</option>
+                <option value="fireworks">🎆 Mode Feu d'artifice</option>
+                <option value="stats">📊 Mode Statistiques (Real-time)</option>
+                <option value="galaxy">🚀 Partition Galactique</option>
+                <option value="waves">🌊 Mode Vagues Sonores</option>
+                <option value="spiral">🌀 Mode Spirale Hypnotique</option>
+                <option value="explosion">💥 Mode Explosion Radiale</option>
+                <option value="tunnel">🕳️ Mode Tunnel Infini</option>
+                <option value="plasma">🎆 Mode Plasma Psychédélique</option>
+                <option value="lightning">⚡ Mode Éclairs Électriques</option>
+                <option value="ripple">💧 Mode Ondulation</option>
+                <option value="spectrum">📊 Mode Spectre Audio</option>
+                <option value="fire">🔥 Mode Flammes Montantes</option>
+            </select>
+            <hr style="border:1px solid #444; margin: 15px 0;">
+            <div id="playlist-container">
+                <h3 style="margin:0 0 10px 0;">📜 Playlist du Show</h3>
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                    <input type="text" id="newSongTitle" placeholder="Nom du morceau" style="margin:0;">
+                    <select id="newSongMode" style="margin:0; width:150px;">
+                    </select>
+                    <button onclick="addSong()" style="margin:0; width:60px;">+</button>
+                </div>
+                <div id="playlist-items" style="max-height: 200px; overflow-y: auto; border: 1px solid #333; padding: 5px;">
+                </div>
+            </div>
+            <hr style="border:1px solid #444; margin: 15px 0;">
+            <div style="margin-bottom: 15px; padding-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 0.8rem; color: #00d2ff;">AFFICHAGE</label>
+                <table>
+                    <tr>
+                        <td>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 5px;">
+                                <input type="checkbox" id="check-webcam" onchange="toggleStreamElement('kb-container', this.checked)"> 
+                                Piano
+                            </label>
+                        </td>
+                        <td>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 5px;">
+                                <input type="checkbox" id="check-webcam" onchange="toggleStreamElement('webcam-container', this.checked)"> 
+                                Webcam
+                            </label>
+                        </td>
+                        <td>
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 5px;">
+                                <input type="checkbox" id="check-votes" onchange="toggleStreamElement('votes-container', this.checked)"> 
+                                Votes
+                            </label>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <hr style="border:1px solid #444; margin: 15px 0;">
+            <button onclick="toggleFullScreen()">🌟 Mode Spectacle (Plein Écran)</button>
+            <p style="font-size: 0.8rem; color: #888; margin-top: 10px;">💡 Astuce : Première/dernière touche du piano pour changer de mode, F15 pour changer de titre.</p>
+        </div>
+
+        <div id="kb-container" style="display:none;">
+            <div id="keyboard"></div>
+        </div>
+
+        <div id="webcam-container" style="display:none;">
+            <video id="webcam" autoplay playsinline></video>
+            <div class="overlay-label"></div>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div class="results-votes" id="votes-report">
+
+            <div class="col"><div class="bar-container"><div id="bar-m1" class="fill"></div></div><div id="txt-m1" class="pct">0%</div><div class="label" id="label-m1"></div></div>
+
+            <div class="col"><div class="bar-container"><div id="bar-m2" class="fill"></div></div><div id="txt-m2" class="pct">0%</div><div class="label" id="label-m2"></div></div>
+
+            <div class="col"><div class="bar-container"><div id="bar-m3" class="fill"></div></div><div id="txt-m3" class="pct">0%</div><div class="label" id="label-m3"></div></div>
+
+        </div>
+
+        <script>
+            let stars = [];
+            const numStars = 400;
+
+            function initStars() {
+                stars = [];
+                for (let i = 0; i < numStars; i++) {
+                    stars.push({
+                        x: (Math.random() - 0.5) * 2000,
+                        y: (Math.random() - 0.5) * 2000,
+                        z: Math.random() * 2000,
+                        px: 0, py: 0 // Positions précédentes pour l'effet de traînée
+                    });
+                }
+            }
+            initStars();
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const animSelector = document.getElementById('animType');
+            const titleInput = document.getElementById('songTitle');
+            const modeIndicator = document.getElementById('mode-indicator');
+            const keysMap = new Map();
+            const activeNotes = new Set();
+
+            // Tableau pour stocker le nombre d'appuis pour chaque note (0-127)
+            let noteStats = new Array(128).fill(0);
+            let maxHits = 1; // Pour l'échelle de l'histogramme
+
+            let items = [];
+            let particles = [];
+            let titleScale = 1;
+            let titleHue = 200;
+            let currentBgHue = 240, targetBgHue = 240, bgIntensity = 0, flashWhite = 0;
+
+            const backgrounds = {
+                'gravity': 'fond-galaxie.jpg',
+                'bgMode': '',
+                'titleMode': 'fond-titre.jpg',
+                'immersion': '', // Noir total pour ce mode
+                'staff': 'fond-notes.jpg',
+                'flowers': '', //fond-fleurs.jpg
+                'hearts': 'jetaime.jpg', //
+                'paint': '',
+                'lightTrail': '',
+                'neonRain': '',
+                'aurora': '',
+                'fireworks': ''
+            };
+
+            function updateBackgroundImage() {
+                const mode = animSelector.value;
+                const img = backgrounds[mode];
+                if (img) {
+                    document.body.style.backgroundImage = `url('${img}')`;
+                } else {
+                    document.body.style.backgroundImage = "none";
+                }
+            }
+
+            function toggleFullScreen() {
+                if (!document.fullscreenElement)
+                    document.documentElement.requestFullscreen();
+                else
+                    document.exitFullscreen();
+            }
+
+            document.addEventListener('fullscreenchange', () => {
+                document.body.classList.toggle('hidden-ui', !!document.fullscreenElement);
+                //Masquer le clavier
+                //document.body.classList.toggle('hidden-kb-container', !!document.fullscreenElement);
+            });
+
+            // --- NAVIGATION PAR LE PIANO ---
+            function changeMode(direction) {
+                const options = Array.from(animSelector.options);
+                let newIndex = animSelector.selectedIndex + direction;
+                if (newIndex < 0)
+                    newIndex = options.length - 1;
+                if (newIndex >= options.length)
+                    newIndex = 0;
+
+                animSelector.selectedIndex = newIndex;
+                updateBackgroundImage(); // <--- AJOUTÉ
+
+                modeIndicator.innerText = options[newIndex].text;
+                modeIndicator.style.opacity = "1";
+                setTimeout(() => {
+                    modeIndicator.style.opacity = "0";
+                }, 1500);
+            }
+
+            animSelector.addEventListener('change', () => {
+                updateBackgroundImage();
+                if (window.publishMode) publishMode(animSelector.value);
+            });
+
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < 1200; i++) {
+                    particles.push({
+                        x: Math.random() * window.innerWidth,
+                        y: Math.random() * window.innerHeight,
+                        vx: 0, vy: 0, hue: Math.random() * 360, size: Math.random() * 2 + 1
+                    });
+                }
+            }
+
+            function initKeyboard() {
+                const kb = document.getElementById('keyboard');
+                kb.innerHTML = '';
+                const notes = [];
+                for (let i = 21; i <= 108; i++)
+                    notes.push(i);
+                notes.forEach(n => {
+                    if (![1, 3, 6, 8, 10].includes(n % 12)) {
+                        const key = document.createElement('div');
+                        key.className = 'key-white';
+                        key.onmousedown = (e) => {
+                            e.preventDefault();
+                            triggerEffect(n, 100);
+                        };
+                        key.onmouseup = () => stopNote(n);
+                        kb.appendChild(key);
+                        keysMap.set(n, key);
+                    }
+                });
+                const whiteKeys = document.querySelectorAll('.key-white');
+                let whiteIdx = 0;
+                notes.forEach(n => {
+                    if ([1, 3, 6, 8, 10].includes(n % 12)) {
+                        const blackKey = document.createElement('div');
+                        blackKey.className = 'key-black';
+                        blackKey.style.left = (whiteIdx / whiteKeys.length * 100) + "%";
+                        blackKey.onmousedown = (e) => {
+                            e.preventDefault();
+                            triggerEffect(n, 100);
+                        };
+                        blackKey.onmouseup = () => stopNote(n);
+                        kb.appendChild(blackKey);
+                        keysMap.set(n, blackKey);
+                    } else {
+                        whiteIdx++;
+                    }
+                });
+            }
+
+            function createFlower(note, velocity) {
+                const hue = (note % 12) * 30; // Couleur basée sur la note
+                const xPos = ((note - 21) / 87) * canvas.width; // Position X selon la note
+
+                items.push({
+                    type: 'flower',
+                    x: xPos,
+                    y: canvas.height - 100,
+                    size: 0,
+                    maxSize: 30 + (velocity / 127) * 40,
+                    hue: hue,
+                    opacity: 1,
+                    speedY: 0.5 + Math.random() * 1
+                });
+            }
+
+            function createHearts(n, v) {
+                const type = animSelector.value; // Récupère le mode sélectionné (ex: 'hearts')
+                const x = ((n - 21) / 87) * canvas.width;
+
+                items.push({
+                    type: type,
+                    x: x,
+                    y: canvas.height - 120,
+                    size: 0,
+                    maxSize: 20 + (v / 127) * 50,
+                    hue: (n % 12) * 30,
+                    opacity: 1,
+                    speedY: 0.5 + Math.random() * 1
+                });
+
+                const key = keysMap.get(n);
+                if (key)
+                    key.classList.add('active');
+            }
+
+            function triggerEffect(note, vel) {
+                // Détection des touches de contrôle (La-0 et Do-8 sur un 88 touches)
+                if (note === 21) {
+                    changeMode(-1);
+                    return;
+                }
+                if (note === 108) {
+                    changeMode(1);
+                    return;
+                }
+
+                if (activeNotes.has(note))
+                    return;
+                activeNotes.add(note);
+                if (window.publishNote) publishNote(note, vel, 'on');
+                const hue = (note % 12) * 30;
+                const color = `hsl(${hue}, 100%, 60%)`;
+
+                if (keysMap.has(note)) {
+                    keysMap.get(note).style.backgroundColor = color;
+                    keysMap.get(note).style.boxShadow = `0 0 40px ${color}`;
+                }
+
+                const mode = animSelector.value;
+                targetBgHue = hue;
+                bgIntensity = Math.min(1.0, vel / 100 + 0.2);
+                flashWhite = vel / 127;
+                titleScale = 1.2;
+                titleHue = hue;
+
+                // Incrémentation des stats
+                noteStats[note]++;
+                if (noteStats[note] > maxHits)
+                    maxHits = noteStats[note];
+
+                if (mode === 'gravity') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    particles.forEach(p => {
+                        const dx = centerX - p.x;
+                        const dy = (canvas.height - 120) - p.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 400) {
+                            p.vx += (dx / dist) * (vel / 8);
+                            p.vy += (dy / dist) * (vel / 8);
+                            p.hue = hue;
+                        }
+                    });
+                } else if (mode === 'immersion') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    items.push({type: 'beam', x: rect.left + rect.width / 2, y: canvas.height - 120, w: rect.width, hue, opacity: 1});
+                } else if (mode === 'staff') {
+                    items.push({type: 'musical_note', x: canvas.width, y: (canvas.height / 2) - (note - 60) * 10, size: 18, hue, opacity: 1});
+                } else if (mode === 'flowers') {
+                    createFlower(note, vel);
+                    //items.push({ type: 'flower', x: ((note-21)/87)*canvas.width, y: canvas.height-120, size: 0, maxSize: 30+(vel/1.5), hue, rotation: Math.random()*6, rotSpeed: 0.02, opacity: 1, speedY: 2 });
+                } else if (mode === 'hearts') {
+                    createHearts(note, vel);
+                } else if (mode === 'paint') {
+                    // Générer 8 rayons aléatoires pour créer une forme unique
+                    const shapeOffsets = Array.from({length: 8}, () => 0.6 + Math.random() * 0.8);
+
+                    items.push({
+                        type: 'paint',
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * (canvas.height - 150),
+                        size: 0,
+                        maxSize: 25 + (vel / 127) * 70,
+                        hue: Math.random() * 360,
+                        opacity: 1,
+                        offsets: shapeOffsets // On stocke la forme ici
+                    });
+                } else if (mode === 'lightTrail') {
+                    items.push({
+                        type: 'lightTrail',
+                        x: ((note - 21) / 87) * canvas.width,
+                        y: canvas.height * 0.4 + (Math.random() * canvas.height * 0.2), // Position centrale aléatoire
+                        note: note,
+                        size: 0,
+                        maxSize: 5 + (vel / 127) * 15,
+                        hue: (note % 12) * 30,
+                        opacity: 1,
+                        life: 1.0 // Durée de vie personnalisée
+                    });
+                } else if (mode === 'neonRain') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    items.push({
+                        type: 'neonRain',
+                        x: rect.left + rect.width / 2,
+                        y: -100, // Part du haut de l'écran
+                        targetY: canvas.height - 120, // Destination : le piano
+                        width: rect.width * 0.8,
+                        height: 40 + (vel / 127) * 100, // Longueur selon la puissance
+                        hue: (note % 12) * 30,
+                        speed: 5 + (vel / 127) * 8, // Vitesse selon la vélocité
+                        opacity: 1,
+                        hit: false // Pour savoir si la barre a touché le piano
+                    });
+                } else if (mode === 'aurora') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    items.push({
+                        type: 'aurora',
+                        x: rect.left + rect.width / 2,
+                        y: canvas.height - 120,
+                        hue: (note % 12) * 30,
+                        width: 20 + (vel / 127) * 40,
+                        opacity: 0.6,
+                        points: [], // Stocke la traîne
+                        waveOffset: Math.random() * Math.PI * 2,
+                        speedY: 1 + (vel / 127) * 1.5
+                    });
+                } else if (mode === 'fireworks') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    const startX = rect.left + rect.width / 2;
+                    const startY = canvas.height - 120;
+                    const hue = (note % 12) * 30;
+                    const particleCount = 15 + Math.floor((vel / 127) * 25); // Plus de particules si on joue fort
+
+                    for (let i = 0; i < particleCount; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 1 + Math.random() * 3;
+                        items.push({
+                            type: 'firework_part',
+                            x: startX,
+                            y: startY,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed - (vel / 20), // Explosion vers le haut
+                            hue: hue,
+                            size: 2 + Math.random() * 3,
+                            opacity: 1,
+                            gravity: 0.15
+                        });
+                    }
+                } else if (animSelector.value === 'galaxy') {
+                    bgIntensity = 0.8; // Boost la vitesse des étoiles
+                    items.push({
+                        type: 'supernova',
+                        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+                        y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+                        r: 20 + (vel / 2),
+                        hue: (note % 12) * 30,
+                        opacity: 1
+                    });
+                } else if (mode === 'waves') {
+                    items.push({
+                        type: 'wave',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'spiral') {
+                    items.push({
+                        type: 'spiral',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'explosion') {
+                    items.push({
+                        type: 'explosion',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'tunnel') {
+                    items.push({
+                        type: 'tunnel',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'plasma') {
+                    items.push({
+                        type: 'plasma',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'lightning') {
+                    const rect = keysMap.get(note).getBoundingClientRect();
+                    items.push({
+                        type: 'lightning',
+                        x: rect.left + rect.width / 2,
+                        y: 0,
+                        targetY: canvas.height - 120,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now(),
+                        segments: []
+                    });
+                } else if (mode === 'ripple') {
+                    items.push({
+                        type: 'ripple',
+                        x: ((note - 21) / 87) * canvas.width,
+                        y: canvas.height / 2,
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now(),
+                        maxRadius: 0
+                    });
+                } else if (mode === 'spectrum') {
+                    items.push({
+                        type: 'spectrum',
+                        note: note,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now()
+                    });
+                } else if (mode === 'fire') {
+                    items.push({
+                        type: 'fire',
+                        note: note,
+                        x: ((note - 21) / 87) * canvas.width,
+                        y: canvas.height - 120,
+                        hue: (note % 12) * 30,
+                        velocity: vel,
+                        timestamp: Date.now(),
+                        particles: []
+                    });
+                }
+            }
+
+            function stopNote(note) {
+                activeNotes.delete(note);
+                if (window.publishNote) publishNote(note, 0, 'off');
+                if (keysMap.has(note)) {
+                    keysMap.get(note).style.backgroundColor = '';
+                    keysMap.get(note).style.boxShadow = '';
+                }
+            }
+
+            function animate() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const mode = animSelector.value;
+
+                if (mode === 'galaxy') {
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
+
+                    // La vitesse de base + boost si on joue
+                    let speed = 1 + (bgIntensity * 10);
+
+                    stars.forEach(s => {
+                        s.z -= speed;
+                        if (s.z <= 1) {
+                            s.z = 2000;
+                            s.x = (Math.random() - 0.5) * 2000;
+                            s.y = (Math.random() - 0.5) * 2000;
+                        }
+
+                        // Projection 3D vers 2D
+                        const x = centerX + (s.x / s.z) * 1000;
+                        const y = centerY + (s.y / s.z) * 1000;
+
+                        if (s.px !== 0) {
+                            ctx.strokeStyle = `rgba(255, 255, 255, ${1 - s.z / 2000})`;
+                            ctx.lineWidth = 2 * (1 - s.z / 2000);
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.lineTo(s.px, s.py);
+                            ctx.stroke();
+                        }
+                        s.px = x;
+                        s.py = y;
+                    });
+
+                    // Dessin des "Supernovas" (les notes jouées)
+                    for (let i = items.length - 1; i >= 0; i--) {
+                        let it = items[i];
+                        if (it.type === 'supernova') {
+                            ctx.save();
+                            ctx.beginPath();
+                            let grad = ctx.createRadialGradient(it.x, it.y, 0, it.x, it.y, it.r);
+                            grad.addColorStop(0, `hsla(${it.hue}, 100%, 70%, ${it.opacity})`);
+                            grad.addColorStop(1, "transparent");
+                            ctx.fillStyle = grad;
+                            ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.restore();
+
+                            it.r += 10;
+                            it.opacity -= 0.02;
+                            if (it.opacity <= 0)
+                                items.splice(i, 1);
+                        }
+                    }
+                }
+
+                if (mode === 'bgMode') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); // Fond transparent
+
+                    let diff = targetBgHue - currentBgHue;
+                    if (Math.abs(diff) > 180)
+                        diff -= Math.sign(diff) * 360;
+                    currentBgHue += diff * 0.1;
+                    ctx.fillStyle = "#000";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width * 0.7);
+                    grad.addColorStop(0, `hsla(${currentBgHue}, 100%, 50%, ${bgIntensity})`);
+                    grad.addColorStop(1, `transparent`);
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    if (flashWhite > 0) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${flashWhite * 0.4})`;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        flashWhite *= 0.85;
+                    }
+                    if (bgIntensity > 0.1)
+                        bgIntensity *= 0.97;
+                } else {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                if (mode === 'gravity') {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vx *= 0.94;
+                        p.vy *= 0.94;
+                        p.vy += 0.01;
+
+                        // Effet néon ultra-lumineux
+                        ctx.save();
+                        ctx.shadowBlur = 40;
+                        ctx.shadowColor = `hsl(${p.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${p.hue}, 100%, 85%)`;
+
+                        // Halo externe
+                        ctx.globalAlpha = 0.3;
+                        ctx.beginPath();
+                        ctx.arc(p.x + p.size / 2, p.y + p.size / 2, p.size * 2, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Particule principale
+                        ctx.globalAlpha = 1;
+                        ctx.shadowBlur = 60;
+                        ctx.fillRect(p.x, p.y, p.size, p.size);
+
+                        ctx.restore();
+
+                        if (p.x < 0 || p.x > canvas.width)
+                            p.vx *= -1;
+                        if (p.y < 0 || p.y > canvas.height)
+                            p.vy *= -1;
+                    });
+                } else if (mode === 'titleMode') {
+                    ctx.save();
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.shadowBlur = 25 * titleScale;
+                    ctx.shadowColor = `hsl(${titleHue}, 100%, 50%)`;
+                    ctx.fillStyle = "white";
+                    ctx.font = `bold ${65 * titleScale}px Arial`;
+                    ctx.fillText(titleInput.value.toUpperCase(), canvas.width / 2, canvas.height / 2);
+                    if (titleScale > 1)
+                        titleScale -= 0.01;
+                    ctx.restore();
+                } else {
+                    //ctx.fillStyle = "rgba(0, 0, 0, 0.3)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                // --- MODE STATISTIQUES AMÉLIORÉ ---
+                if (mode === 'stats') {
+                    // Fond noir pur pour faire ressortir les néons
+                    ctx.fillStyle = "black";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const padding = 60;
+                    const chartWidth = canvas.width - (padding * 2);
+                    const chartHeight = canvas.height - 350;
+                    const barWidth = chartWidth / 88;
+
+                    // Titre Stylisé
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "bold 28px 'Segoe UI'";
+                    ctx.textAlign = "center";
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = "#00d2ff";
+                    ctx.fillText("ANALYSE HARMONIQUE EN DIRECT", canvas.width / 2, 80);
+                    ctx.shadowBlur = 0;
+
+                    for (let i = 21; i <= 108; i++) {
+                        const hits = noteStats[i];
+                        const hue = (i % 12) * 30; // Couleur par note (Do, Ré, Mi...)
+                        const x = padding + (i - 21) * barWidth;
+                        const h = (hits / maxHits) * chartHeight;
+                        const y = (canvas.height - 200) - h;
+
+                        if (activeNotes.has(i)) {
+                            // EFFET D'IMPACT (Quand la note est pressée)
+                            ctx.save();
+                            ctx.shadowBlur = 30;
+                            ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
+                            ctx.fillStyle = `hsl(${hue}, 100%, 80%)`; // Plus clair à l'impact
+
+                            // On dessine une barre un peu plus large pour l'impact
+                            ctx.fillRect(x - 2, y, barWidth + 2, h + 5);
+
+                            // Petit éclat au sommet
+                            ctx.beginPath();
+                            ctx.arc(x + barWidth / 2, y, barWidth * 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.restore();
+                        } else {
+                            // BARRE CLASSIQUE (Notes déjà jouées)
+                            ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.5)`;
+                            ctx.fillRect(x, y, barWidth - 2, h);
+                        }
+
+                        // Affichage du score au-dessus (si > 0)
+                        if (hits > 0) {
+                            ctx.fillStyle = "rgba(255,255,255,0.8)";
+                            ctx.font = "10px Arial";
+                            ctx.fillText(hits, x + barWidth / 2, y - 12);
+                        }
+                    }
+                }
+
+                for (let i = items.length - 1; i >= 0; i--) {
+                    let it = items[i];
+                    if (it.type === 'beam') {
+                        it.y -= 3;
+                        it.opacity -= 0.015;
+
+                        ctx.save();
+                        // Halo externe
+                        ctx.shadowBlur = 60;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 60%)`;
+                        ctx.fillStyle = `hsla(${it.hue}, 100%, 75%, ${it.opacity})`;
+                        ctx.fillRect(it.x - it.w / 2, it.y, it.w, 60);
+
+                        // Bord lumineux
+                        ctx.globalAlpha = it.opacity * 0.5;
+                        ctx.shadowBlur = 80;
+                        ctx.fillStyle = `hsla(${it.hue}, 100%, 90%, ${it.opacity})`;
+                        ctx.fillRect(it.x - it.w / 2 - 5, it.y, it.w + 10, 60);
+                        ctx.restore();
+                    }
+                    if (it.type === 'musical_note') {
+                        it.x -= 2;
+                        if (it.x < 100)
+                            it.opacity -= 0.02;
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Halo néon
+                        ctx.shadowBlur = 40;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+
+                        // Note ovale
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, 12, 8, -Math.PI / 6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Hampe avec lueur
+                        ctx.shadowBlur = 50;
+                        ctx.fillRect(10, 0, 3, -40);
+
+                        // Halo supplémentaire
+                        ctx.globalAlpha = it.opacity * 0.3;
+                        ctx.shadowBlur = 60;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                    if (it.type === 'flower2') {
+                        it.y -= it.speedY;
+                        it.opacity -= 0.004;
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Halo externe ultra-lumineux
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+
+                        if (it.size < it.maxSize)
+                            it.size += 2.5;
+                        for (let j = 0; j < 6; j++) {
+                            ctx.rotate(Math.PI / 3);
+                            ctx.beginPath();
+                            ctx.ellipse(0, it.size / 2, it.size / 3, it.size / 1.5, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+                    if (it.type === 'flower') {
+                        it.y -= it.speedY; // La fleur monte
+                        it.opacity -= 0.004; // Elle disparaît progressivement
+
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Halo externe ultra-lumineux
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+
+                        // Animation de croissance
+                        if (it.size < it.maxSize)
+                            it.size += 2.5;
+
+                        // Dessin des 6 pétales
+                        for (let j = 0; j < 6; j++) {
+                            ctx.rotate(Math.PI / 3);
+                            ctx.beginPath();
+                            // Dessine une ellipse pour chaque pétale
+                            ctx.ellipse(0, it.size / 2, it.size / 3, it.size / 1.5, 0, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+                    if (it.type === 'hearts') {
+                        it.y -= it.speedY;
+                        it.opacity -= 0.004;
+
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Halo externe pulsant
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+
+                        if (it.size < it.maxSize)
+                            it.size += 2.5;
+
+                        // Dessin du cœur plein
+                        const s = it.size;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.bezierCurveTo(-s, -s, -s * 1.5, s / 3, 0, s);
+                        ctx.bezierCurveTo(s * 1.5, s / 3, s, -s, 0, 0);
+                        ctx.fill();
+
+                        // Halo supplémentaire
+                        ctx.globalAlpha = it.opacity * 0.3;
+                        ctx.shadowBlur = 70;
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+                    if (it.type === 'paint') {
+                        it.opacity -= 0.006;
+
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Halo néon éclatant
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+
+                        if (it.size < it.maxSize)
+                            it.size += 5;
+
+                        // Dessin de la tache avec sa forme spécifique
+                        ctx.beginPath();
+                        for (let j = 0; j < it.offsets.length; j++) {
+                            const angle = (j / it.offsets.length) * Math.PI * 2;
+                            const dist = it.size * it.offsets[j]; // Utilise l'offset unique de cette tache
+                            const tx = Math.cos(angle) * dist;
+                            const ty = Math.sin(angle) * dist;
+
+                            if (j === 0)
+                                ctx.moveTo(tx, ty);
+                            else
+                                ctx.quadraticCurveTo(0, 0, tx, ty);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Ajout de quelques projections de peinture autour (facultatif)
+                        /*for (let k = 0; k < 3; k++) {
+                         const off = it.offsets[k];
+                         ctx.beginPath();
+                         ctx.arc(Math.cos(k * 2) * it.size * 1.4, Math.sin(k * 2) * it.size * 1.4, it.size / 6 * off, 0, Math.PI * 2);
+                         ctx.fill();
+                         }*/
+
+                        ctx.restore();
+                    }
+
+                    if (it.type === 'lightTrail') {
+                        it.opacity -= 0.005; // Disparition lente pour laisser le dessin
+
+                        ctx.save();
+                        ctx.globalAlpha = it.opacity;
+
+                        // 1. Dessin du point lumineux avec halo néon intense
+                        ctx.shadowBlur = 40;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 90%)`;
+
+                        ctx.beginPath();
+                        ctx.arc(it.x, it.y, it.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Halo externe supplémentaire
+                        ctx.globalAlpha = it.opacity * 0.4;
+                        ctx.shadowBlur = 60;
+                        ctx.beginPath();
+                        ctx.arc(it.x, it.y, it.size * 2, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (it.size < it.maxSize)
+                            it.size += 0.5;
+
+                        // 2. Tracé des lignes vers les notes proches (Écriture)
+                        // On regarde les 3 notes précédentes dans la liste
+                        for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+                            let other = items[j];
+                            if (other && other.type === 'lightTrail') {
+                                ctx.beginPath();
+                                ctx.moveTo(it.x, it.y);
+                                ctx.lineTo(other.x, other.y);
+                                ctx.strokeStyle = `hsla(${it.hue}, 100%, 70%, ${it.opacity * 0.5})`;
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                            }
+                        }
+
+                        ctx.restore();
+                    }
+                    if (it.type === 'neonRain') {
+                        if (!it.hit) {
+                            it.y += it.speed; // Descente
+                            if (it.y + it.height >= it.targetY) {
+                                it.hit = true; // Impact !
+                            }
+                        } else {
+                            it.opacity -= 0.1; // Disparition rapide après impact
+                            it.height *= 0.8;  // Écrasement
+                        }
+
+                        ctx.save();
+                        ctx.translate(it.x, it.y);
+                        ctx.globalAlpha = it.opacity;
+
+                        // Effet de lueur néon ultra-intense
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+
+                        // Corps de la barre avec gradient amélioré
+                        const grad = ctx.createLinearGradient(0, 0, 0, it.height);
+                        grad.addColorStop(0, `hsla(${it.hue}, 100%, 85%, 0)`);
+                        grad.addColorStop(1, `hsla(${it.hue}, 100%, 90%, 1)`);
+
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(-it.width / 2, 0, it.width, it.height);
+
+                        // Tête ultra-lumineuse de la barre
+                        ctx.shadowBlur = 60;
+                        ctx.fillStyle = "white";
+                        ctx.fillRect(-it.width / 2, it.height - 4, it.width, 4);
+
+                        // Halo supplémentaire autour de la tête
+                        ctx.globalAlpha = it.opacity * 0.4;
+                        ctx.shadowBlur = 80;
+                        ctx.fillRect(-it.width / 2 - 5, it.height - 6, it.width + 10, 8);
+
+                        ctx.restore();
+                    }
+                    if (it.type === 'aurora') {
+                        it.y -= it.speedY;
+                        it.opacity -= 0.005;
+                        it.waveOffset += 0.05;
+
+                        // Ajouter la position actuelle à la traîne (points)
+                        const drift = Math.sin(it.waveOffset) * 30;
+                        it.points.unshift({x: it.x + drift, y: it.y});
+
+                        // Garder seulement les 40 derniers points pour limiter la longueur
+                        if (it.points.length > 40)
+                            it.points.pop();
+
+                        if (it.points.length > 1) {
+                            ctx.save();
+                            ctx.globalAlpha = it.opacity;
+
+                            // Halo externe ultra-lumineux
+                            ctx.shadowBlur = 60;
+                            ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+
+                            // Dessin du ruban boréal
+                            ctx.beginPath();
+                            ctx.moveTo(it.points[0].x, it.points[0].y);
+
+                            for (let j = 1; j < it.points.length; j++) {
+                                // Création d'une courbe fluide entre les points
+                                const p = it.points[j];
+                                ctx.lineTo(p.x, p.y);
+                            }
+
+                            ctx.strokeStyle = `hsla(${it.hue}, 100%, 85%, 0.9)`;
+                            ctx.lineWidth = it.width;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.stroke();
+
+                            // Cœur de lumière blanche ultra-brillant au centre du ruban
+                            ctx.shadowBlur = 80;
+                            ctx.strokeStyle = "white";
+                            ctx.lineWidth = it.width / 4;
+                            ctx.stroke();
+
+                            ctx.restore();
+                        }
+                    }
+                    if (it.type === 'firework_part') {
+                        // Physique de la particule
+                        it.x += it.vx;
+                        it.y += it.vy;
+                        it.vy += it.gravity; // La gravité fait retomber l'étincelle
+                        it.opacity -= 0.015;  // Disparition progressive
+
+                        ctx.save();
+                        ctx.globalAlpha = it.opacity;
+
+                        // Dessin de l'étincelle avec lueur néon ultra-intense
+                        ctx.shadowBlur = 50;
+                        ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                        ctx.fillStyle = `hsl(${it.hue}, 100%, 90%)`;
+
+                        ctx.beginPath();
+                        ctx.arc(it.x, it.y, it.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Halo supplémentaire éclatant
+                        ctx.globalAlpha = it.opacity * 0.4;
+                        ctx.shadowBlur = 70;
+                        ctx.beginPath();
+                        ctx.arc(it.x, it.y, it.size * 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.restore();
+                    }
+
+                    // NOUVELLES ANIMATIONS
+                    if (it.type === 'wave') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 3) {
+                            it.opacity = 0;
+                        } else {
+                            const waveCount = 3;
+                            const amplitude = (it.velocity / 127) * 150 + 50;
+                            const frequency = 0.01 + (it.note / 108) * 0.02;
+
+                            for (let i = 0; i < waveCount; i++) {
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.lineWidth = 6 - i * 1.5;
+                                ctx.shadowBlur = 50;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = (1 - age / 3) * (1 - i * 0.2);
+
+                                ctx.beginPath();
+                                const time = Date.now() * 0.001;
+                                for (let x = 0; x < canvas.width; x += 5) {
+                                    const y = canvas.height / 2 +
+                                            Math.sin(x * frequency + time * 2.5 + i * 0.5 + it.note * 0.1) * amplitude +
+                                            Math.sin(x * frequency * 2 + time * 1.5) * (amplitude / 3);
+                                    if (x === 0)
+                                        ctx.moveTo(x, y);
+                                    else
+                                        ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'spiral') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 4) {
+                            it.opacity = 0;
+                        } else {
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const maxRadius = Math.max(canvas.width, canvas.height) * (it.velocity / 127);
+                            const spiralCount = Math.floor(1 + it.note / 22);
+                            const time = Date.now() * 0.001;
+
+                            for (let i = 0; i < spiralCount; i++) {
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.lineWidth = 4;
+                                ctx.shadowBlur = 40;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = (1 - age / 4) * 0.8;
+
+                                ctx.beginPath();
+                                for (let r = 0; r < maxRadius; r += 5) {
+                                    const angle = (r * 0.02) + (time * 1.5) + (i * Math.PI * 2 / spiralCount) + (it.note * 0.05);
+                                    const x = centerX + Math.cos(angle) * r;
+                                    const y = centerY + Math.sin(angle) * r;
+                                    if (r === 0)
+                                        ctx.moveTo(x, y);
+                                    else
+                                        ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'explosion') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 2) {
+                            it.opacity = 0;
+                        } else {
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const rays = 30 + Math.floor(it.note / 3);
+                            const maxLength = (Math.max(canvas.width, canvas.height) / 2) * (it.velocity / 127);
+                            const time = Date.now() * 0.001;
+
+                            ctx.shadowBlur = 60;
+                            ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+
+                            for (let i = 0; i < rays; i++) {
+                                const angle = (i / rays) * Math.PI * 2 + time * 1 + it.note * 0.01;
+                                const length = maxLength * (1 - age / 2) * (Math.sin(time * 5 + i * 0.1) * 0.3 + 0.7);
+
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.lineWidth = 5;
+                                ctx.globalAlpha = (1 - age / 2);
+
+                                ctx.beginPath();
+                                ctx.moveTo(centerX, centerY);
+                                ctx.lineTo(
+                                        centerX + Math.cos(angle) * length,
+                                        centerY + Math.sin(angle) * length
+                                        );
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'tunnel') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 5) {
+                            it.opacity = 0;
+                        } else {
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const rings = 20;
+                            const time = Date.now() * 0.001;
+
+                            for (let i = 0; i < rings; i++) {
+                                const radius = (i * 50) + ((time * 25 + it.note * 10) % 100);
+                                const sides = 6;
+
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.lineWidth = 3;
+                                ctx.shadowBlur = 30;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = (1 - age / 5) * (1 - (i / rings));
+
+                                ctx.beginPath();
+                                for (let j = 0; j <= sides; j++) {
+                                    const angle = (j / sides) * Math.PI * 2 + time * 1;
+                                    const x = centerX + Math.cos(angle) * radius;
+                                    const y = centerY + Math.sin(angle) * radius;
+                                    if (j === 0)
+                                        ctx.moveTo(x, y);
+                                    else
+                                        ctx.lineTo(x, y);
+                                }
+                                ctx.closePath();
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'plasma') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 3) {
+                            it.opacity = 0;
+                        } else {
+                            const gridSize = 25;
+                            const centerX = canvas.width / 2;
+                            const centerY = canvas.height / 2;
+                            const time = Date.now() * 0.001;
+
+                            for (let x = 0; x < canvas.width; x += gridSize) {
+                                for (let y = 0; y < canvas.height; y += gridSize) {
+                                    const dx = x - centerX;
+                                    const dy = y - centerY;
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                    const value = Math.sin(dist * 0.02 + time * 5 + it.note * 0.05) +
+                                            Math.sin(x * 0.01 + time * 4) +
+                                            Math.sin(y * 0.01 + time * 3);
+
+                                    const intensity = ((value + 3) / 6) * (it.velocity / 127) * (1 - age / 3);
+                                    ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                    ctx.globalAlpha = intensity;
+                                    ctx.shadowBlur = 25;
+                                    ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                    ctx.fillRect(x, y, gridSize, gridSize);
+                                }
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'lightning') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 0.5) {
+                            it.opacity = 0;
+                        } else {
+                            const segments = 30;
+
+                            for (let bolt = 0; bolt < 3; bolt++) {
+                                let x = it.x + (bolt - 1) * 100;
+                                let y = it.y;
+
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 90%)`;
+                                ctx.lineWidth = 5;
+                                ctx.shadowBlur = 40;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = 1 - (age * 2);
+
+                                ctx.beginPath();
+                                ctx.moveTo(x, y);
+
+                                for (let i = 0; i < segments; i++) {
+                                    x += (Math.random() - 0.5) * 100;
+                                    y += (it.targetY - it.y) / segments;
+                                    ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'ripple') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 4) {
+                            it.opacity = 0;
+                        } else {
+                            it.maxRadius = age * 300 * (it.velocity / 127);
+                            const rings = 5;
+
+                            for (let i = 0; i < rings; i++) {
+                                const radius = it.maxRadius - (i * 50);
+                                if (radius < 0)
+                                    continue;
+
+                                ctx.strokeStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.lineWidth = 4;
+                                ctx.shadowBlur = 40;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = (1 - age / 4) * (1 - i * 0.15);
+
+                                ctx.beginPath();
+                                ctx.arc(it.x, it.y, radius, 0, Math.PI * 2);
+                                ctx.stroke();
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'spectrum') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 2) {
+                            it.opacity = 0;
+                        } else {
+                            const barWidth = canvas.width / 88;
+                            const barIndex = it.note - 21;
+                            const x = barIndex * barWidth;
+                            const height = (it.velocity / 127) * canvas.height * (1 - age / 2);
+
+                            ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+                            ctx.shadowBlur = 30;
+                            ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                            ctx.globalAlpha = (1 - age / 2);
+
+                            ctx.fillRect(x, canvas.height - height, barWidth - 2, height);
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.type === 'fire') {
+                        const age = (Date.now() - it.timestamp) / 1000;
+                        if (age > 3) {
+                            it.opacity = 0;
+                        } else {
+                            const particleCount = Math.floor(it.velocity / 10);
+
+                            for (let i = 0; i < particleCount; i++) {
+                                const offsetX = (Math.random() - 0.5) * 50;
+                                const offsetY = age * -200 + (Math.random() * 100);
+                                const size = (1 - age / 3) * 20 * (it.velocity / 127);
+
+                                ctx.fillStyle = `hsl(${it.hue}, 100%, 85%)`;
+                                ctx.shadowBlur = 40;
+                                ctx.shadowColor = `hsl(${it.hue}, 100%, 70%)`;
+                                ctx.globalAlpha = (1 - age / 3) * (Math.random() * 0.5 + 0.5);
+
+                                ctx.fillRect(it.x + offsetX, it.y + offsetY, size, size);
+                            }
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+
+                    if (it.opacity <= 0 || it.x < -50)
+                        items.splice(i, 1);
+                }
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                initParticles();
+            });
+            if (navigator.requestMIDIAccess) {
+                navigator.requestMIDIAccess().then(access => {
+                    for (let input of access.inputs.values()) {
+                        document.getElementById('status').innerText = "🎹 " + input.name;
+                        input.onmidimessage = (m) => {
+                            const [s, n, v] = m.data;
+                            if (s === 144 && v > 0)
+                                triggerEffect(n, v);
+                            else if (s === 128 || (s === 144 && v === 0))
+                                stopNote(n);
+                        };
+                    }
+                });
+            }
+            initKeyboard();
+            initParticles();
+            animate();
+
+
+            let playlist = [];
+            let currentSongIndex = -1;
+
+// Initialisation au chargement
+            window.onload = () => {
+                // Injections des modes dans le selecteur de playlist
+                const animType = document.getElementById('animType');
+                const newSongMode = document.getElementById('newSongMode');
+                if (animType && newSongMode) {
+                    newSongMode.innerHTML = animType.innerHTML;
+                }
+
+                // Création de l'afficheur haut-droite
+                const display = document.createElement('div');
+                display.id = 'current-song-display';
+                document.body.appendChild(display);
+
+                loadPlaylist(); // Charger la playlist mémorisée
+            };
+
+            function savePlaylist() {
+                localStorage.setItem('saphir_playlist', JSON.stringify(playlist));
+            }
+
+            function loadPlaylist() {
+                const saved = localStorage.getItem('saphir_playlist');
+                if (saved) {
+                    playlist = JSON.parse(saved);
+                    renderPlaylist();
+                }
+            }
+
+            function addSong() {
+                const title = document.getElementById('newSongTitle').value;
+                const mode = document.getElementById('newSongMode').value;
+                if (!title)
+                    return;
+
+                playlist.push({title, mode});
+                document.getElementById('newSongTitle').value = '';
+
+                savePlaylist(); // Sauvegarde après ajout
+                renderPlaylist();
+            }
+
+            function renderPlaylist() {
+                const container = document.getElementById('playlist-items');
+                container.innerHTML = '';
+
+                playlist.forEach((song, index) => {
+                    const item = document.createElement('div');
+                    item.className = `playlist-item ${index === currentSongIndex ? 'active-song' : ''}`;
+                    item.innerHTML = `
+            <span>${song.title} <small>(${song.mode})</small></span>
+            <button onclick="moveSong(${index}, -1)">↑</button>
+            <button onclick="moveSong(${index}, 1)">↓</button>
+            <button onclick="removeSong(${index})" style="background:#522;">✕</button>
+        `;
+                    container.appendChild(item);
+                });
+            }
+
+            function removeSong(index) {
+                playlist.splice(index, 1);
+                if (currentSongIndex >= playlist.length)
+                    currentSongIndex = -1;
+
+                savePlaylist(); // Sauvegarde après suppression
+                renderPlaylist();
+            }
+
+            function moveSong(index, direction) {
+                const newIndex = index + direction;
+                if (newIndex >= 0 && newIndex < playlist.length) {
+                    [playlist[index], playlist[newIndex]] = [playlist[newIndex], playlist[index]];
+
+                    savePlaylist(); // Sauvegarde après changement d'ordre
+                    renderPlaylist();
+                }
+            }
+
+            function showPerformanceReport() {
+                // Calcul des données
+                const totalNotes = noteStats.reduce((a, b) => a + b, 0);
+                const sortedNotes = noteStats
+                        .map((hits, index) => ({note: index, hits}))
+                        .sort((a, b) => b.hits - a.hits)
+                        .slice(0, 3); // Top 3
+
+                const noteNames = ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"];
+
+                // Création de l'overlay
+                const report = document.createElement('div');
+                report.id = "perf-report";
+                report.style = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.95); border: 2px solid #00d2ff; border-radius: 15px;
+        padding: 30px; color: white; text-align: center; font-family: 'Segoe UI', sans-serif;
+        box-shadow: 0 0 50px rgba(0, 210, 255, 0.5); z-index: 2000; min-width: 300px;
+    `;
+
+                let topHtml = sortedNotes.map((n, i) =>
+                        `<p style="font-size: 1.2rem; color: #00d2ff;">
+            #${i + 1} - <b>${noteNames[n.note % 12]}</b> (${n.hits} fois)
+        </p>`).join('');
+
+                report.innerHTML = `
+        <h2 style="margin-top:0; text-transform:uppercase; letter-spacing:2px;">🏆 Rapport Saphir Live !</h2>
+        <p>Total des notes jouées : <span style="color:#00d2ff; font-weight:bold;">${totalNotes}</span></p>
+        <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+        <h3 style="font-weight:300;">Notes Dominantes</h3>
+        ${topHtml}
+        <button onclick="this.parentElement.remove()" style="margin-top:20px; background:#00d2ff; border:none; padding:10px 20px; color:black; font-weight:bold; cursor:pointer; border-radius:5px;">MASQUER</button>
+    `;
+
+                document.body.appendChild(report);
+            }
+
+// --- LOGIQUE F15 : PASSAGE AU MORCEAU SUIVANT ---
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'F3') {
+                    showPerformanceReport();
+                }
+                if (e.key === 'F15') {
+                    nextSong();
+                }
+            });
+
+            function nextSong() {
+                noteStats.fill(0); // Réinitialise les compteurs
+                maxHits = 1;       // Réinitialise l'échelle
+
+                if (playlist.length === 0)
+                    return;
+
+                currentSongIndex++;
+                if (currentSongIndex >= playlist.length)
+                    currentSongIndex = 0; // Boucle au début
+
+                const song = playlist[currentSongIndex];
+
+                // 1. Applique le mode
+                animSelector.value = song.mode;
+                if (window.publishMode)  publishMode(song.mode);
+                if (window.publishTitle) publishTitle(titleInput.value, song.title);
+                updateBackgroundImage();
+
+                // 2. Affiche le titre en haut à droite
+                const display = document.getElementById('current-song-display');
+                display.innerHTML = `<span style="font-size:0.8rem; color:#888;">NOW PLAYING</span><br>${song.title}`;
+
+                // 3. Animation du mode indicateur au centre
+                modeIndicator.innerText = song.title;
+                modeIndicator.style.opacity = "1";
+                setTimeout(() => {
+                    modeIndicator.style.opacity = "0";
+                }, 2000);
+
+                renderPlaylist();
+            }
+
+            // --- ACTIVATION WEBCAM ---
+            let currentStream = null;
+            async function initWebcam() {
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({video: true});
+                    const video = document.getElementById('webcam');
+                    video.srcObject = currentStream;
+                } catch (err) {
+                    console.error("Erreur webcam: ", err);
+                }
+            }
+
+            // --- STOP WEBCAM ---
+            function stopWebcam() {
+                if (currentStream) {
+                    // Arrête chaque piste (vidéo/audio) du flux
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+
+                    // Vide l'élément vidéo
+                    const video = document.getElementById('webcam');
+                    video.srcObject = null;
+                }
+            }
+
+            function toggleStreamElement(elementId, isVisible) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.style.display = isVisible ? 'block' : 'none';
+
+                    // Si c'est le groupe Twitch, on s'assure que les enfants flex/grid gardent leur structure
+                    if (elementId === 'twitch-group' && isVisible) {
+                        el.style.display = 'contents'; // Permet aux enfants de se positionner absolument
+                    }
+
+                    //Activer la webcam
+                    if (elementId === 'webcam-container' && isVisible) {
+                        initWebcam();
+                    } else {
+                        stopWebcam();
+                    }
+                    // Sync votes visibility avec l'esclave
+                    if (elementId === 'votes-container' && window.publishVotesVisible)
+                        publishVotesVisible(isVisible);
+                    if (elementId === 'kb-container' && window.publishPianoVisible)
+                        publishPianoVisible(isVisible);
+                }
+            }
+        </script>
+        <script type="module">
+    import { initializeApp }                            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, off, set }      from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+        authDomain:        "saphir-live.firebaseapp.com",
+        projectId:         "saphir-live",
+        storageBucket:     "saphir-live.firebasestorage.app",
+        messagingSenderId: "719917557935",
+        appId:             "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+        measurementId:     "G-VQQ9H234NB",
+        databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    // ─── PUBLICATION VERS L'ESCLAVE ──────────────────────────────────────────
+    // { mode, ts } force le trigger Firebase même si on revient au même mode
+    window.publishMode = function(mode) {
+        set(ref(db, 'live/mode'), { mode: mode, ts: Date.now() });
+    };
+
+    window.publishNote = function(note, vel, type) {
+        set(ref(db, 'live/note'), { note, vel, type, ts: Date.now() });
+    };
+
+    window.publishTitle = function(text, song) {
+        set(ref(db, 'live/title'), { text, song: song || '', ts: Date.now() });
+    };
+
+    window.publishVotesVisible = function(visible) {
+        set(ref(db, 'live/votesVisible'), visible);
+    };
+
+    window.publishPianoVisible = function(visible) {
+        set(ref(db, 'live/pianoVisible'), visible);
+    };
+
+    // ─── HEARTBEAT ────────────────────────────────────────────────────────────
+    function sendHeartbeat() { set(ref(db, 'live/heartbeat'), Date.now()); }
+    sendHeartbeat();
+    setInterval(sendHeartbeat, 5000);
+
+    // ─── VOTES (code original) ────────────────────────────────────────────────
+    let currentListenerRef = null;
+    let currentPollId = 1;
+
+    const programmeConcert = {
+        "1": {m1:"Chopin - Nocturne",       m2:"Debussy - Clair de Lune",  m3:"Satie - Gymnopédie"},
+        "2": {m1:"Liszt - La Campanella",   m2:"Rachmaninoff - Prélude",   m3:"Improvisation Jazz"},
+        "3": {m1:"Interstellar Theme",      m2:"Inception - Time",         m3:"Amélie Poulain"}
+    };
+
+    function showVotesReport() {
+        const votes = document.getElementById('votes-report');
+        votes.style = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(0,0,0,0.95);border:2px solid #00d2ff;border-radius:15px;
+            padding:30px;color:white;text-align:center;font-family:'Segoe UI',sans-serif;
+            box-shadow:0 0 50px rgba(0,210,255,0.5);z-index:2000;min-width:300px;`;
+    }
+    function masquerVotesReport() {
+        document.getElementById('votes-report').style = 'display:none;';
+    }
+
+    window.switchSession = function(newId) {
+        if (currentListenerRef) off(currentListenerRef);
+        currentPollId = newId;
+        const titresSession = programmeConcert[currentPollId] || {m1:"Choix A",m2:"Choix B",m3:"Choix C"};
+        set(ref(db, `config/session_${currentPollId}/titles`), titresSession);
+        document.getElementById('current-session-number').innerText = currentPollId;
+        if (document.getElementById('label-m1')) document.getElementById('label-m1').innerText = titresSession.m1;
+        if (document.getElementById('label-m2')) document.getElementById('label-m2').innerText = titresSession.m2;
+        if (document.getElementById('label-m3')) document.getElementById('label-m3').innerText = titresSession.m3;
+        ['m1','m2','m3'].forEach(id => {
+            const bar=document.getElementById('bar-'+id), txt=document.getElementById('txt-'+id);
+            if (bar) bar.style.height='0%';
+            if (txt) txt.innerText='0%';
+        });
+        const pollPath = `votes/session_${currentPollId}`;
+        currentListenerRef = ref(db, pollPath);
+        onValue(currentListenerRef, (snap) => {
+            const data=snap.val()||{m1:0,m2:0,m3:0};
+            const total=(data.m1||0)+(data.m2||0)+(data.m3||0);
+            ['m1','m2','m3'].forEach(id => {
+                const count=data[id]||0, percentage=total>0?Math.round((count/total)*100):0;
+                const bar=document.getElementById('bar-'+id), txt=document.getElementById('txt-'+id);
+                if (bar) bar.style.height=percentage+'%';
+                if (txt) txt.innerText=percentage+'%';
+            });
+        });
+        set(ref(db, 'config/current_active_id'), currentPollId);
+    };
+
+    window.resetVotes = function() {
+        if (!confirm("⚠️ Saphir, veux-tu vraiment réinitialiser les votes de la Session "+currentPollId+" ?")) return;
+        const db2 = getDatabase();
+        set(ref(db2, `votes/session_${currentPollId}`), {m1:0,m2:0,m3:0});
+        set(ref(db2, `check_votes/session_${currentPollId}`), null);
+        ['m1','m2','m3'].forEach(id => {
+            const bar=document.getElementById('bar-'+id), txt=document.getElementById('txt-'+id);
+            if (bar) bar.style.height='0%';
+            if (txt) txt.innerText='0%';
+        });
+    };
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key==="F1") { event.preventDefault(); masquerVotesReport(); let n=currentPollId+1; if(n>3)n=1; window.switchSession(n); }
+        if (event.key==="F2") { event.preventDefault(); showVotesReport(); }
+        if (event.key==="F4") { window.resetVotes(); }
+    });
+
+    window.switchSession(1);
+        </script>
+    </body>
+</html>
