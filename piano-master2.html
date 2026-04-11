@@ -46,52 +46,105 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let activeNotes = new Map();
+const ctx = canvas.getContext('2d');
+const log = document.getElementById('log');
 
-    // Redimensionnement
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.6; }
-    window.onresize = resize; resize();
+// Utilisation d'une Map pour gérer plusieurs notes simultanément
+let activeNotes = new Map();
 
-    // Création clavier test
+// Initialisation du clavier 
+function initKeyboard() {
     const kbd = document.getElementById('keyboard');
-    for(let i=60; i<72; i++) {
-        const btn = document.createElement('div');
-        btn.className = 'key';
-        btn.onmousedown = () => noteOn(i, 100);
-        btn.onmouseup = () => noteOff(i);
-        kbd.appendChild(btn);
-    }
-
-    function noteOn(note, vel) {
-        activeNotes.set(note, vel);
-        update();
-    }
-
-    function noteOff(note) {
-        activeNotes.delete(note);
-        update();
-    }
-
-    function update() {
-        const notesArray = Array.from(activeNotes.entries()).map(([n, v]) => ({note: n, velocity: v}));
-        if(window.sendToFirebase) {
-            window.sendToFirebase({ notes: notesArray, animation: 'beams' });
-        }
-    }
-
-    function render() {
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(0,0,canvas.width, canvas.height);
+    kbd.innerHTML = ''; // Nettoie le clavier existant
+    
+    // On crée 24 touches pour le test (2 octaves)
+    for(let i = 60; i <= 84; i++) {
+        const k = document.createElement('div');
+        k.className = 'key';
+        k.dataset.note = i;
         
-        activeNotes.forEach((vel, note) => {
-            const x = ((note - 21) / 88) * canvas.width;
-            ctx.fillStyle = '#00e5ff';
-            ctx.fillRect(x, canvas.height, 20, -vel * 2);
-        });
-        requestAnimationFrame(render);
+        // Gère le clic Souris
+        k.onmousedown = () => handleNoteOn(i, 100);
+        k.onmouseup = () => handleNoteOff(i);
+        k.onmouseleave = () => { if(isMouseDown) handleNoteOff(i); };
+        
+        kbd.appendChild(k);
     }
-    render();
+}
+
+function handleNoteOn(note, vel) {
+    if (activeNotes.has(note)) return; // Empêche les doublons
+    
+    activeNotes.set(note, vel);
+    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
+    if(keyEl) keyEl.classList.add('active');
+    
+    log.textContent = "Notes actives : " + Array.from(activeNotes.keys()).join(', ');
+    sync();
+}
+
+function handleNoteOff(note) {
+    if (!activeNotes.has(note)) return;
+    
+    activeNotes.delete(note);
+    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
+    if(keyEl) keyEl.classList.remove('active');
+    
+    log.textContent = activeNotes.size > 0 ? 
+        "Notes actives : " + Array.from(activeNotes.keys()).join(', ') : 
+        "Aucune note";
+    sync();
+}
+
+// Fonction de synchronisation CRITIQUE
+function sync() {
+    // On transforme la Map en un TABLEAU d'objets pour Firebase
+    const notesArray = [];
+    activeNotes.forEach((vel, note) => {
+        notesArray.push({
+            note: note,
+            velocity: vel
+        });
+    });
+
+    if(window.sendToFirebase) {
+        window.sendToFirebase({ 
+            notes: notesArray, 
+            animation: 'beams',
+            timestamp: Date.now() 
+        });
+    }
+}
+
+// Boucle de rendu (Visualisation locale)
+function draw() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // On dessine TOUTES les notes présentes dans la Map
+    activeNotes.forEach((vel, note) => {
+        const x = ((note - 21) / 88) * canvas.width;
+        const w = (canvas.width / 88) * 0.8;
+        
+        ctx.fillStyle = '#00e5ff';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00e5ff';
+        ctx.fillRect(x, canvas.height, w, -(vel / 127) * canvas.height);
+    });
+    
+    requestAnimationFrame(draw);
+}
+
+// Lancement
+let isMouseDown = false;
+window.addEventListener('mousedown', () => isMouseDown = true);
+window.addEventListener('mouseup', () => isMouseDown = false);
+
+initKeyboard();
+draw();
 </script>
 </body>
 </html>
