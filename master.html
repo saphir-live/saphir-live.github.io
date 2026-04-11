@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASTER — Contrôleur Lumières</title>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⚙️ REMPLACEZ PAR VOTRE CONFIG FIREBASE
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const lightsRef = ref(db, 'lights');
+
+  // État par défaut
+  let state = {
+    preset: 'sweep',
+    speed: 3,
+    color1: '#ffffff',
+    color2: '#00d4ff',
+    color3: '#ff6b00',
+    beamCount: 4,
+    glowIntensity: 80,
+    active: true
+  };
+
+  function pushState() {
+    set(lightsRef, { ...state, timestamp: Date.now() });
+  }
+
+  // Expose to global
+  window.fbPush = pushState;
+  window.fbState = state;
+
+  // Écoute les changements
+  onValue(lightsRef, (snap) => {
+    const data = snap.val();
+    if (data) {
+      window.fbState = data;
+      updateUI(data);
+    }
+  });
+
+  function updateUI(data) {
+    const statusEl = document.getElementById('sync-status');
+    if (statusEl) {
+      statusEl.textContent = '● SYNC';
+      statusEl.style.color = '#00ff88';
+      setTimeout(() => {
+        statusEl.style.color = '#00d4ff';
+      }, 400);
+    }
+  }
+
+  window.addEventListener('load', () => {
+    pushState();
+  });
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050508;
+    --surface: #0d0d18;
+    --border: #1a1a2e;
+    --accent: #00d4ff;
+    --accent2: #ff6b00;
+    --text: #c8d0e0;
+    --dim: #4a5060;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINES overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, #0d0d18, #050508);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent);
+  }
+
+  .logo span { color: var(--accent2); }
+
+  #sync-status {
+    font-size: 12px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    transition: color 0.3s;
+  }
+
+  .role-badge {
+    font-size: 11px;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    padding: 4px 12px;
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px var(--accent2);
+    box-shadow: 0 0 10px rgba(255,107,0,0.2);
+  }
+
+  /* PREVIEW AREA */
+  .preview-area {
+    position: relative;
+    height: 220px;
+    background: #000;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-area canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .preview-label {
+    position: absolute;
+    top: 12px;
+    left: 20px;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--dim);
+  }
+
+  /* CONTROLS GRID */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    flex: 1;
+  }
+
+  .panel {
+    padding: 24px 28px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel:nth-child(even) { border-right: none; }
+
+  .panel-title {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--dim);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  /* PRESET BUTTONS */
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .preset-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 12px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 15px rgba(0,212,255,0.1);
+  }
+
+  .preset-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0,212,255,0.15), inset 0 0 20px rgba(0,212,255,0.05);
+  }
+
+  /* SLIDERS */
+  .slider-group { margin-bottom: 18px; }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  .slider-label span { color: var(--accent); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    outline: none;
+    border-radius: 2px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--accent);
+    border: 2px solid var(--bg);
+  }
+
+  /* COLOR PICKERS */
+  .color-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+
+  .color-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    width: 60px;
+  }
+
+  input[type=color] {
+    -webkit-appearance: none;
+    width: 44px;
+    height: 28px;
+    border: 1px solid var(--border);
+    background: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 2px;
+  }
+
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 1px; }
+
+  /* MASTER TOGGLE */
+  .master-toggle-area {
+    padding: 20px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(90deg, #0a0a14, var(--bg));
+  }
+
+  .big-toggle {
+    position: relative;
+    width: 80px;
+    height: 40px;
+    cursor: pointer;
+  }
+
+  .big-toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #1a1a2e;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: all 0.3s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: 30px;
+    height: 30px;
+    background: var(--dim);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+
+  .big-toggle input:checked + .toggle-slider {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,212,255,0.2);
+  }
+
+  .big-toggle input:checked + .toggle-slider::before {
+    transform: translateX(40px);
+    background: var(--accent);
+    box-shadow: 0 0 15px var(--accent);
+  }
+
+  .toggle-desc { font-size: 13px; letter-spacing: 3px; color: var(--text); }
+  .toggle-desc small { display: block; font-size: 10px; color: var(--dim); margin-top: 4px; letter-spacing: 2px; }
+
+  /* BEAM COUNT special */
+  .beam-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .beam-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .beam-btn.active {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,107,0,0.1);
+    box-shadow: 0 0 12px rgba(255,107,0,0.2);
+  }
+
+  /* FIREBASE CONFIG MODAL */
+  .config-notice {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .config-box {
+    border: 1px solid var(--accent);
+    padding: 40px;
+    max-width: 560px;
+    width: 90%;
+    background: var(--surface);
+    box-shadow: 0 0 60px rgba(0,212,255,0.1);
+  }
+
+  .config-box h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 6px;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .config-box p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .config-box code {
+    color: var(--accent2);
+    background: rgba(255,107,0,0.1);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  .config-close {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 10px 24px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  .config-close:hover { background: rgba(0,212,255,0.1); }
+</style>
+</head>
+<body>
+
+<!-- CONFIG NOTICE -->
+<div class="config-notice" id="configNotice">
+  <div class="config-box">
+    <h2>⚙ FIREBASE CONFIG</h2>
+    <p>Pour utiliser cette application, remplacez la configuration Firebase dans la section <code>&lt;script type="module"&gt;</code> en haut du fichier avec vos propres clés.</p>
+    <p>Créez un projet sur <code>console.firebase.google.com</code>, activez le <code>Realtime Database</code>, puis copiez votre configuration dans les deux fichiers <code>master.html</code> et <code>slave.html</code>.</p>
+    <p>Réglez les règles de sécurité sur <code>read: true, write: true</code> pour les tests.</p>
+    <button class="config-close" onclick="document.getElementById('configNotice').style.display='none'">COMPRIS — CONTINUER</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">LIGHT<span>CTRL</span></div>
+  <div class="role-badge">MASTER</div>
+  <div id="sync-status">● HORS LIGNE</div>
+</header>
+
+<!-- PREVIEW -->
+<div class="preview-area">
+  <div class="preview-label">APERÇU TEMPS RÉEL</div>
+  <canvas id="previewCanvas"></canvas>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+
+  <!-- PRESETS -->
+  <div class="panel">
+    <div class="panel-title">// PRESETS</div>
+    <div class="presets">
+      <button class="preset-btn active" data-preset="sweep" onclick="setPreset('sweep', this)">SWEEP</button>
+      <button class="preset-btn" data-preset="pulse" onclick="setPreset('pulse', this)">PULSE</button>
+      <button class="preset-btn" data-preset="strobe" onclick="setPreset('strobe', this)">STROBE</button>
+      <button class="preset-btn" data-preset="orbit" onclick="setPreset('orbit', this)">ORBIT</button>
+      <button class="preset-btn" data-preset="fan" onclick="setPreset('fan', this)">FAN</button>
+      <button class="preset-btn" data-preset="chase" onclick="setPreset('chase', this)">CHASE</button>
+    </div>
+  </div>
+
+  <!-- BEAMS -->
+  <div class="panel">
+    <div class="panel-title">// FAISCEAUX</div>
+    <div class="slider-group">
+      <div class="slider-label">NOMBRE <span id="beamVal">4</span></div>
+      <div class="beam-selector" id="beamSelector">
+        <button class="beam-btn" onclick="setBeams(1,this)">1</button>
+        <button class="beam-btn" onclick="setBeams(2,this)">2</button>
+        <button class="beam-btn" onclick="setBeams(3,this)">3</button>
+        <button class="beam-btn active" onclick="setBeams(4,this)">4</button>
+        <button class="beam-btn" onclick="setBeams(6,this)">6</button>
+        <button class="beam-btn" onclick="setBeams(8,this)">8</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VITESSE + INTENSITÉ -->
+  <div class="panel">
+    <div class="panel-title">// DYNAMIQUE</div>
+
+    <div class="slider-group">
+      <div class="slider-label">VITESSE <span id="speedVal">3</span></div>
+      <input type="range" id="speedSlider" min="1" max="10" value="3"
+        oninput="updateParam('speed', this.value, 'speedVal')">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">INTENSITÉ GLOW <span id="glowVal">80</span>%</div>
+      <input type="range" id="glowSlider" min="10" max="100" value="80"
+        oninput="updateParam('glowIntensity', this.value, 'glowVal')">
+    </div>
+  </div>
+
+  <!-- COULEURS -->
+  <div class="panel">
+    <div class="panel-title">// COULEURS</div>
+
+    <div class="color-row">
+      <div class="color-label">BEAM 1</div>
+      <input type="color" id="color1" value="#ffffff" onchange="updateColor('color1', this.value)">
+      <div style="font-size:11px;color:var(--dim)" id="c1hex">#ffffff</div>
+    </div>
+    <div class="color-row">
+      <div class="color-label">BEAM 2</div>
+      <input type="color" id="color2" value="#00d4ff" onchange="updateColor('color2', this.value)">
+      <div style="font-size:11px;color:var(--dim)" id="c2hex">#00d4ff</div>
+    </div>
+    <div class="color-row">
+      <div class="color-label">BEAM 3</div>
+      <input type="color" id="color3" value="#ff6b00" onchange="updateColor('color3', this.value)">
+      <div style="font-size:11px;color:var(--dim)" id="c3hex">#ff6b00</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MASTER TOGGLE -->
+<div class="master-toggle-area">
+  <label class="big-toggle">
+    <input type="checkbox" id="masterToggle" checked onchange="toggleActive(this)">
+    <span class="toggle-slider"></span>
+  </label>
+  <div class="toggle-desc">
+    PROJECTEURS
+    <small id="toggleStatus">ACTIFS — DIFFUSION EN COURS</small>
+  </div>
+</div>
+
+<script>
+// ==============================
+// PREVIEW CANVAS
+// ==============================
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d');
+let animFrame;
+let t = 0;
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getState() {
+  return window.fbState || {
+    preset: 'sweep', speed: 3, color1: '#ffffff',
+    color2: '#00d4ff', color3: '#ff6b00',
+    beamCount: 4, glowIntensity: 80, active: true
+  };
+}
+
+function lerpAngle(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function drawBeam(cx, cy, angle, color, length, width, glowIntensity) {
+  const rad = (angle * Math.PI) / 180;
+  const ex = cx + Math.cos(rad) * length;
+  const ey = cy + Math.sin(rad) * length;
+
+  const grad = ctx.createLinearGradient(cx, cy, ex, ey);
+  grad.addColorStop(0, color + 'ff');
+  grad.addColorStop(0.5, color + 'aa');
+  grad.addColorStop(1, color + '00');
+
+  ctx.save();
+  ctx.shadowBlur = glowIntensity * 0.4;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+
+  // Halo source
+  const srcGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+  srcGlow.addColorStop(0, color + '88');
+  srcGlow.addColorStop(1, 'transparent');
+  ctx.save();
+  ctx.fillStyle = srcGlow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function animate() {
+  animFrame = requestAnimationFrame(animate);
+  const s = getState();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (!s.active) {
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.font = '12px Share Tech Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('● PROJECTEURS INACTIFS', canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  const speed = parseFloat(s.speed) * 0.02;
+  t += speed;
+
+  const colors = [s.color1, s.color2, s.color3];
+  const count = parseInt(s.beamCount);
+  const W = canvas.width, H = canvas.height;
+  const glow = parseInt(s.glowIntensity);
+  const len = Math.max(W, H) * 0.9;
+
+  const positions = [
+    { x: W * 0.15, y: H },
+    { x: W * 0.5, y: H },
+    { x: W * 0.85, y: H },
+    { x: 0, y: H * 0.5 },
+    { x: W, y: H * 0.5 },
+    { x: W * 0.3, y: H },
+    { x: W * 0.7, y: H },
+    { x: W * 0.5, y: H },
+  ];
+
+  for (let i = 0; i < count; i++) {
+    const pos = positions[i % positions.length];
+    const color = colors[i % 3];
+    let angle;
+
+    switch (s.preset) {
+      case 'sweep':
+        angle = -90 + Math.sin(t + i * 0.8) * 45;
+        break;
+      case 'pulse':
+        angle = -90 + Math.sin(t * 2 + i * (360 / count) * Math.PI / 180) * 30;
+        break;
+      case 'strobe':
+        angle = -90 + (Math.floor(t * 3 + i) % 5 - 2) * 20;
+        break;
+      case 'orbit':
+        angle = (t * 60 + i * (360 / count)) % 360 - 270;
+        break;
+      case 'fan':
+        angle = -90 + (i - (count - 1) / 2) * (60 / Math.max(count - 1, 1)) + Math.sin(t + i) * 8;
+        break;
+      case 'chase':
+        angle = -90 + Math.sin(t * 1.5 + i * 1.2) * 55;
+        break;
+      default:
+        angle = -90 + Math.sin(t + i) * 40;
+    }
+
+    const glowMult = glow / 100;
+    ctx.globalAlpha = 0.85;
+    drawBeam(pos.x, pos.y, angle, color, len, 3 + glowMult * 4, glow * glowMult);
+    ctx.globalAlpha = 0.3;
+    drawBeam(pos.x, pos.y, angle, color, len, 10 + glowMult * 8, glow * glowMult * 0.5);
+    ctx.globalAlpha = 1;
+  }
+}
+
+animate();
+
+// ==============================
+// CONTROL FUNCTIONS
+// ==============================
+function push() {
+  if (window.fbPush) window.fbPush();
+}
+
+function setPreset(preset, btn) {
+  window.fbState.preset = preset;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  push();
+}
+
+function setBeams(n, btn) {
+  window.fbState.beamCount = n;
+  document.getElementById('beamVal').textContent = n;
+  document.querySelectorAll('.beam-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  push();
+}
+
+function updateParam(key, val, displayId) {
+  window.fbState[key] = parseFloat(val);
+  document.getElementById(displayId).textContent = val;
+  push();
+}
+
+function updateColor(key, val) {
+  window.fbState[key] = val;
+  const hexMap = { color1: 'c1hex', color2: 'c2hex', color3: 'c3hex' };
+  document.getElementById(hexMap[key]).textContent = val;
+  push();
+}
+
+function toggleActive(el) {
+  window.fbState.active = el.checked;
+  document.getElementById('toggleStatus').textContent = el.checked
+    ? 'ACTIFS — DIFFUSION EN COURS'
+    : 'INACTIFS — EN VEILLE';
+  push();
+}
+
+// Init fbState safe
+if (!window.fbState) window.fbState = {
+  preset: 'sweep', speed: 3, color1: '#ffffff',
+  color2: '#00d4ff', color3: '#ff6b00',
+  beamCount: 4, glowIntensity: 80, active: true
+};
+</script>
+</body>
+</html>

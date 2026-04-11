@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLAVE — Afficheur Lumières</title>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⚙️ REMPLACEZ PAR VOTRE CONFIG FIREBASE (identique au Master)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const lightsRef = ref(db, 'lights');
+
+  onValue(lightsRef, (snap) => {
+    const data = snap.val();
+    if (data) {
+      window.lightState = data;
+      showConnected();
+    }
+  });
+
+  function showConnected() {
+    const el = document.getElementById('connectionDot');
+    if (el) {
+      el.style.background = '#00ff88';
+      el.style.boxShadow = '0 0 12px #00ff88';
+      setTimeout(() => {
+        el.style.background = '#00d4ff';
+        el.style.boxShadow = '0 0 8px #00d4ff';
+      }, 300);
+    }
+  }
+
+  window.addEventListener('load', () => {
+    // Default state while waiting
+    window.lightState = window.lightState || {
+      preset: 'sweep', speed: 3, color1: '#ffffff',
+      color2: '#00d4ff', color3: '#ff6b00',
+      beamCount: 4, glowIntensity: 80, active: true
+    };
+  });
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent: #00d4ff;
+    --accent2: #ff6b00;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+
+  /* MAIN CANVAS — Full screen */
+  #stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* HUD Overlay */
+  #hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.3);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .role-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--accent2);
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px var(--accent2);
+    opacity: 0.6;
+  }
+
+  .connection-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(0,0,0,0.4);
+  }
+
+  #connectionDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transition: all 0.3s;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hud-right {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .hud-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .hud-stat-label { font-size: 9px; color: rgba(255,255,255,0.2); }
+  .hud-stat-val { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  /* Vignette */
+  #stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+  }
+
+  /* OFFLINE overlay */
+  #offlineScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    z-index: 20;
+  }
+
+  #offlineScreen .off-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 12px;
+    color: rgba(255,255,255,0.1);
+  }
+
+  #offlineScreen .off-sub {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.2);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<!-- OFFLINE STATE -->
+<div id="offlineScreen">
+  <div class="off-title">VEILLE</div>
+  <div class="off-sub">EN ATTENTE DU SIGNAL MASTER</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-left">
+    <div class="role-label">SLAVE</div>
+    <div class="connection-pill">
+      <div id="connectionDot"></div>
+      FIREBASE SYNC
+    </div>
+  </div>
+  <div class="hud-right">
+    <div class="hud-stat">
+      <div class="hud-stat-label">PRESET</div>
+      <div class="hud-stat-val" id="hudPreset">—</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">BEAMS</div>
+      <div class="hud-stat-val" id="hudBeams">—</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">SPEED</div>
+      <div class="hud-stat-val" id="hudSpeed">—</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">FPS</div>
+      <div class="hud-stat-val" id="hudFps">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==============================
+// RENDERER
+// ==============================
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+let t = 0;
+let lastTime = 0;
+let fps = 0;
+let fpsCounter = 0;
+let fpsTimer = 0;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function getState() {
+  return window.lightState || {
+    preset: 'sweep', speed: 3, color1: '#ffffff',
+    color2: '#00d4ff', color3: '#ff6b00',
+    beamCount: 4, glowIntensity: 80, active: true
+  };
+}
+
+// Hex to RGBA helper
+function hexAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function drawBeam(cx, cy, angleDeg, color, glowIntensity) {
+  const W = canvas.width, H = canvas.height;
+  const len = Math.sqrt(W * W + H * H);
+  const rad = (angleDeg * Math.PI) / 180;
+  const ex = cx + Math.cos(rad) * len;
+  const ey = cy + Math.sin(rad) * len;
+
+  const glowMult = glowIntensity / 100;
+
+  // Wide soft outer beam
+  const grad2 = ctx.createLinearGradient(cx, cy, ex, ey);
+  grad2.addColorStop(0, hexAlpha(color, 0.08 * glowMult));
+  grad2.addColorStop(0.4, hexAlpha(color, 0.04 * glowMult));
+  grad2.addColorStop(1, hexAlpha(color, 0));
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = grad2;
+  ctx.lineWidth = 80 + glowMult * 60;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+
+  // Mid beam
+  const grad1 = ctx.createLinearGradient(cx, cy, ex, ey);
+  grad1.addColorStop(0, hexAlpha(color, 0.5 * glowMult));
+  grad1.addColorStop(0.6, hexAlpha(color, 0.15 * glowMult));
+  grad1.addColorStop(1, hexAlpha(color, 0));
+  ctx.save();
+  ctx.shadowBlur = 20 * glowMult;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = grad1;
+  ctx.lineWidth = 14 + glowMult * 10;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+
+  // Core bright beam
+  const grad0 = ctx.createLinearGradient(cx, cy, ex, ey);
+  grad0.addColorStop(0, hexAlpha(color, 0.95));
+  grad0.addColorStop(0.7, hexAlpha(color, 0.5));
+  grad0.addColorStop(1, hexAlpha(color, 0));
+  ctx.save();
+  ctx.shadowBlur = 40 * glowMult;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = grad0;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+
+  // Source glow burst
+  const srcR = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60 + glowMult * 40);
+  srcR.addColorStop(0, hexAlpha(color, 0.7 * glowMult));
+  srcR.addColorStop(0.3, hexAlpha(color, 0.3 * glowMult));
+  srcR.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.save();
+  ctx.fillStyle = srcR;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 100 * glowMult, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function getBeamPositions(count, W, H) {
+  // Spread beam sources around the bottom edge and corners
+  const positions = [];
+  if (count === 1) {
+    positions.push({ x: W / 2, y: H + 10 });
+  } else if (count === 2) {
+    positions.push({ x: W * 0.25, y: H + 10 });
+    positions.push({ x: W * 0.75, y: H + 10 });
+  } else if (count === 3) {
+    positions.push({ x: W * 0.1, y: H + 10 });
+    positions.push({ x: W * 0.5, y: H + 10 });
+    positions.push({ x: W * 0.9, y: H + 10 });
+  } else if (count === 4) {
+    positions.push({ x: W * 0.12, y: H + 10 });
+    positions.push({ x: W * 0.38, y: H + 10 });
+    positions.push({ x: W * 0.62, y: H + 10 });
+    positions.push({ x: W * 0.88, y: H + 10 });
+  } else if (count === 6) {
+    for (let i = 0; i < 6; i++) positions.push({ x: W * (0.1 + i * 0.16), y: H + 10 });
+  } else if (count === 8) {
+    for (let i = 0; i < 8; i++) positions.push({ x: W * (0.05 + i * 0.128), y: H + 10 });
+  } else {
+    for (let i = 0; i < count; i++) {
+      positions.push({ x: W * ((i + 1) / (count + 1)), y: H + 10 });
+    }
+  }
+  return positions;
+}
+
+function getAngle(preset, index, count, t) {
+  switch (preset) {
+    case 'sweep':
+      return -90 + Math.sin(t + index * 0.9) * 50;
+    case 'pulse': {
+      const base = -90 + (index - (count-1)/2) * (40 / Math.max(count-1, 1));
+      return base + Math.sin(t * 2 + index * 0.5) * 10;
+    }
+    case 'strobe': {
+      const step = Math.floor(t * 4 + index * 1.7) % 7 - 3;
+      return -90 + step * 18;
+    }
+    case 'orbit':
+      return (t * 60 + index * (360 / count)) % 360 - 270;
+    case 'fan': {
+      const spread = 80;
+      const baseAngle = -90 + (index - (count - 1) / 2) * (spread / Math.max(count - 1, 1));
+      return baseAngle + Math.sin(t * 0.8) * 5;
+    }
+    case 'chase':
+      return -90 + Math.sin(t * 1.8 + index * 1.3) * 60;
+    default:
+      return -90 + Math.sin(t + index) * 45;
+  }
+}
+
+// Particle dust system
+class DustParticle {
+  constructor(W, H) { this.reset(W, H); }
+  reset(W, H) {
+    this.x = Math.random() * W;
+    this.y = H + Math.random() * 40;
+    this.vy = -(0.5 + Math.random() * 1.5);
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.life = 0;
+    this.maxLife = 80 + Math.random() * 120;
+    this.size = 0.5 + Math.random() * 2;
+    this.color = '#ffffff';
+  }
+  update(W, H) {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+    if (this.life > this.maxLife || this.y < 0) this.reset(W, H);
+  }
+  draw(ctx) {
+    const alpha = Math.sin((this.life / this.maxLife) * Math.PI) * 0.4;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+const DUST = Array.from({ length: 120 }, () => new DustParticle(window.innerWidth, window.innerHeight));
+
+// Floor reflection
+function drawFloor(W, H, beamPositions, angles, colors, glowIntensity) {
+  const glowMult = glowIntensity / 100;
+  beamPositions.forEach((pos, i) => {
+    const angle = angles[i];
+    const rad = (angle * Math.PI) / 180;
+    // Where beam hits the "floor" (bottom of screen)
+    // Reflect: use ellipse glow at source point
+    const rGrad = ctx.createRadialGradient(pos.x, H, 0, pos.x, H, 80 * glowMult);
+    rGrad.addColorStop(0, hexAlpha(colors[i % colors.length], 0.25 * glowMult));
+    rGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.fillStyle = rGrad;
+    ctx.beginPath();
+    ctx.ellipse(pos.x, H, 80 * glowMult, 30 * glowMult, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+let lastState = null;
+
+function render(timestamp) {
+  requestAnimationFrame(render);
+
+  const dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  fpsCounter++;
+  fpsTimer += dt;
+  if (fpsTimer >= 0.5) {
+    fps = Math.round(fpsCounter / fpsTimer);
+    fpsCounter = 0;
+    fpsTimer = 0;
+    document.getElementById('hudFps').textContent = fps;
+  }
+
+  const s = getState();
+  const speed = parseFloat(s.speed || 3) * 0.025;
+  t += speed;
+
+  const W = canvas.width, H = canvas.height;
+
+  // Dark clear with slow fade trail
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0, 0, W, H);
+
+  // OFFLINE CHECK
+  const offEl = document.getElementById('offlineScreen');
+  if (!s.active) {
+    offEl.style.display = 'flex';
+    // Update HUD
+    document.getElementById('hudPreset').textContent = '—';
+    document.getElementById('hudBeams').textContent = '—';
+    document.getElementById('hudSpeed').textContent = '—';
+    return;
+  } else {
+    offEl.style.display = 'none';
+  }
+
+  const count = parseInt(s.beamCount || 4);
+  const positions = getBeamPositions(count, W, H);
+  const colors = [s.color1 || '#ffffff', s.color2 || '#00d4ff', s.color3 || '#ff6b00'];
+  const glow = parseInt(s.glowIntensity || 80);
+  const angles = positions.map((_, i) => getAngle(s.preset, i, count, t));
+
+  // Floor glow reflection
+  drawFloor(W, H, positions, angles, colors, glow);
+
+  // Dust particles — colorize based on nearby beam
+  DUST.forEach(p => {
+    p.color = colors[Math.floor(Math.random() * colors.length)];
+    p.update(W, H);
+    p.draw(ctx);
+  });
+
+  // Draw beams back to front
+  positions.forEach((pos, i) => {
+    drawBeam(pos.x, pos.y, angles[i], colors[i % colors.length], glow);
+  });
+
+  // Atmospheric top haze
+  const hazeGrad = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+  hazeGrad.addColorStop(0, 'rgba(0,0,0,0.3)');
+  hazeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = hazeGrad;
+  ctx.fillRect(0, 0, W, H * 0.3);
+
+  // Vignette
+  const vign = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.9);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vign;
+  ctx.fillRect(0, 0, W, H);
+
+  // Update HUD
+  if (!lastState || lastState.preset !== s.preset || lastState.beamCount !== s.beamCount) {
+    document.getElementById('hudPreset').textContent = (s.preset || '—').toUpperCase();
+    document.getElementById('hudBeams').textContent = s.beamCount || '—';
+    document.getElementById('hudSpeed').textContent = s.speed || '—';
+    lastState = { ...s };
+  }
+}
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
