@@ -1,213 +1,222 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SAPHIR — PUBLIC</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SAPHIR LIVE ! | Public</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@300;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --neon: #00e5ff; --bg: #000000; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: var(--bg); color: white; 
+            font-family: 'Montserrat', sans-serif; 
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.15s ease-out;
+        }
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        /* --- OVERLAY DE VOTE --- */
+        #vote-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1.1);
+        }
 
-  // ⚙️ UTILISEZ VOTRE CONFIG FIREBASE EXACTE ICI
-  const firebaseConfig = {
-        apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
-        authDomain:        "saphir-live.firebaseapp.com",
-        projectId:         "saphir-live",
-        storageBucket:     "saphir-live.firebasestorage.app",
-        messagingSenderId: "719917557935",
-        appId:             "1:719917557935:web:3a7a4e1a846732c1afcc5a",
-        measurementId:     "G-VQQ9H234NB",
-        databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
-    };
+        #vote-overlay.active {
+            opacity: 1; pointer-events: auto;
+            transform: scale(1);
+        }
 
-  // Initialisation
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+        .vote-card {
+            width: 85%; max-width: 400px;
+            text-align: center;
+        }
 
-  // Éléments DOM
-  const body = document.body;
-  const statusEl = document.getElementById('status-text');
+        #session-badge {
+            display: inline-block;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
 
-  // Variable pour gérer l'extinction
-  let fadeTimeout;
+        h1 { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.6rem; 
+            margin-bottom: 25px; 
+            color: white;
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+        }
 
-  // Écouter les notes du Piano
-  onValue(ref(db, 'piano'), snap => {
-    const d = snap.val();
-    if (!d) return;
+        #vote-question {
+            font-size: 1rem; margin-bottom: 30px; font-weight: 300; line-height: 1.4;
+        }
 
-    // Vérifier si c'est un événement NoteOn
-    if (d.lastEvent === 'noteOn' && d.lastColor) {
-      
-      // 1. Appliquer la couleur sur TOUT le fond
-      body.style.backgroundColor = d.lastColor;
-      
-      // Optionnel : Ajoute un léger flash blanc pour plus de dynamisme
-      body.classList.add('flash');
-      setTimeout(() => body.classList.remove('flash'), 50);
+        /* Grille des boutons de vote */
+        #vote-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
 
-      // Mettre à jour le texte d'attente (invisible après le premier signal)
-      if(statusEl) statusEl.style.opacity = '0';
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
 
-      // 2. Gérer l'extinction (fade to black)
-      clearTimeout(fadeTimeout);
-      // Le fond redevient noir après 1.5 seconde (ajustable)
-      fadeTimeout = setTimeout(() => {
-        body.style.backgroundColor = '#000000';
-      }, 1500); 
-    }
-  });
+        .option-btn:active {
+            background: var(--neon);
+            color: black;
+            transform: scale(0.95);
+        }
 
-</script>
+        /* --- BOUTON PLEIN ÉCRAN --- */
+        #fs-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 200;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px; border-radius: 50%;
+            width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+        }
+        
+        body.is-fs #fs-btn { opacity: 0; pointer-events: none; }
 
-<style>
-  /* Base Reset */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Empêche le scroll */
-    background-color: #000000; /* Fond noir par défaut */
-    color: #ffffff;
-    font-family: sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Transition fluide pour le changement de couleur */
-    transition: background-color 0.1s ease-out; 
-    -webkit-tap-highlight-color: transparent; /* Désactive le flash de clic sur mobile */
-  }
-
-  /* Effet de flash optionnel */
-  body.flash {
-    filter: brightness(1.5) contrast(1.2);
-  }
-
-  /* Texte d'attente initial */
-  #status-text {
-    font-size: 14px;
-    letter-spacing: 2px;
-    opacity: 0.6;
-    text-transform: uppercase;
-    transition: opacity 0.5s ease;
-    text-align: center;
-    padding: 20px;
-    pointer-events: none; /* Ne bloque pas les clics */
-  }
-
-  /* ─── BOUTON PLEIN ÉCRAN ─── */
-  #fs-btn {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 100;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    cursor: pointer;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    opacity: 1; /* Visible par défaut */
-  }
-
-  /* Icône SVG minimaliste */
-  #fs-btn svg {
-    width: 24px;
-    height: 24px;
-    fill: rgba(255, 255, 255, 0.6);
-  }
-
-  /* 🔥 CLASSE CRUCIALE : Cache le bouton quand le plein écran est actif */
-  body.is-fullscreen #fs-btn {
-    opacity: 0;
-    transform: scale(0.5);
-    pointer-events: none; /* Désactive les clics quand invisible */
-  }
-
-  /* Hover effect pour desktop/simulateur */
-  @media (hover: hover) {
-    #fs-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-    #fs-btn:hover svg {
-      fill: rgba(255, 255, 255, 1);
-    }
-  }
-</style>
+        #waiting-msg { font-size: 0.7rem; letter-spacing: 3px; opacity: 0.3; text-transform: uppercase; }
+    </style>
 </head>
-<body>
+<body onclick="handleFirstClick()">
 
-  <button id="fs-btn" onclick="toggleFS()" title="Activer l'expérience plein écran">
-    <svg viewBox="0 0 24 24">
-      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-    </svg>
-  </button>
+    <button id="fs-btn" onclick="toggleFS()">
+        <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
 
-  <div id="status-text">
-    Utilisez le bouton en haut à droite<br>
-    pour démarrer l'expérience.<br><br>
-    En attente du signal...
-  </div>
+    <div id="waiting-msg">En attente du signal SAPHIR...</div>
 
-<script>
-  // ─── LOGIQUE PLEIN ÉCRAN (Adaptée Mobile) ───
+    <div id="vote-overlay">
+        <div class="vote-card">
+            <div id="session-badge">Live Session</div>
+            <h1 id="vote-title">VOTRE CHOIX</h1>
+            <p id="vote-question">Chargement du vote...</p>
+            
+            <div id="vote-options">
+                </div>
+        </div>
+    </div>
 
-  const btn = document.getElementById('fs-btn');
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  function toggleFS() {
-    // Cibler le document complet
-    const doc = document.documentElement;
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+            authDomain: "saphir-live.firebaseapp.com",
+            projectId: "saphir-live",
+            databaseURL: "https://saphir-live-default-rtdb.firebaseio.com"
+        };
 
-    if (!document.fullscreenElement &&    // Standard
-        !document.webkitFullscreenElement && // Safari/iOS
-        !document.msFullscreenElement) {     // IE/Edge
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-      // DEMANDER LE PLEIN ÉCRAN
-      if (doc.requestFullscreen) {
-        doc.requestFullscreen();
-      } else if (doc.webkitRequestFullscreen) { /* Safari/iOS */
-        doc.webkitRequestFullscreen();
-      } else if (doc.msRequestFullscreen) { /* IE11 */
-        doc.msRequestFullscreen();
-      }
-    } else {
-      // QUITTER LE PLEIN ÉCRAN
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-    }
-  }
+        let currentSessionId = 0;
+        let hasVoted = false;
 
-  // Écouter le changement d'état du plein écran pour masquer/afficher le bouton
-  function onFSChange() {
-    // Vérifie si un élément est actuellement en plein écran
-    const isFS = document.fullscreenElement || 
-                 document.webkitFullscreenElement || 
-                 document.msFullscreenElement;
+        // --- ÉCOUTE DES NOTES (COULEUR DE FOND) ---
+        let fadeTimeout;
+        onValue(ref(db, 'piano'), snap => {
+            const d = snap.val();
+            if (d && d.lastEvent === 'noteOn') {
+                document.body.style.backgroundColor = d.lastColor || '#00d4ff';
+                document.getElementById('waiting-msg').style.opacity = '0';
+                clearTimeout(fadeTimeout);
+                fadeTimeout = setTimeout(() => { document.body.style.backgroundColor = '#000000'; }, 1000);
+            }
+        });
 
-    if (isFS) {
-      // Plein écran actif -> Ajouter la classe pour Cacher le bouton
-      document.body.classList.add('is-fullscreen');
-    } else {
-      // Plein écran inactif -> Retirer la classe pour Montrer le bouton
-      document.body.classList.remove('is-fullscreen');
-    }
-  }
+        // --- ÉCOUTE DES VOTES (SYNCHRO MASTER) ---
+        onValue(ref(db, 'lights/currentVote'), snap => {
+            const vote = snap.val();
+            const overlay = document.getElementById('vote-overlay');
+            
+            if (vote && vote.active) {
+                // Si c'est une nouvelle session de vote, on réinitialise l'état "a voté"
+                if (vote.sessionId !== currentSessionId) {
+                    currentSessionId = vote.sessionId;
+                    hasVoted = false;
+                }
 
-  // Enregistrer les écouteurs pour tous les navigateurs
-  document.addEventListener('fullscreenchange', onFSChange);
-  document.addEventListener('webkitfullscreenchange', onFSChange);
-  document.addEventListener('mozfullscreenchange', onFSChange);
-  document.addEventListener('MSFullscreenChange', onFSChange);
+                if (!hasVoted) {
+                    document.getElementById('vote-question').innerText = vote.question;
+                    const container = document.getElementById('vote-options');
+                    container.innerHTML = ''; // Nettoyer les anciens boutons
 
-</script>
+                    // Génération dynamique des choix (jusqu'à 4)
+                    vote.options.forEach((optText, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn';
+                        btn.innerText = optText;
+                        btn.onclick = () => submitVote(index + 1);
+                        container.appendChild(btn);
+                    });
+
+                    overlay.classList.add('active');
+                }
+            } else {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // --- ENVOI DU VOTE ---
+        window.submitVote = function(optionIndex) {
+            hasVoted = true;
+            document.getElementById('vote-overlay').classList.remove('active');
+
+            // On incrémente le compteur spécifique sur Firebase
+            const voteRef = ref(db, `votes/session_${currentSessionId}/m${optionIndex}`);
+            set(voteRef, increment(1));
+            
+            // Petit feedback visuel
+            document.body.style.backgroundColor = 'rgba(0, 229, 255, 0.5)';
+            setTimeout(() => { document.body.style.backgroundColor = '#000000'; }, 200);
+        };
+
+        // --- PLEIN ÉCRAN & INTERACTION ---
+        window.toggleFS = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        document.addEventListener('fullscreenchange', () => {
+            document.body.classList.toggle('is-fs', !!document.fullscreenElement);
+        });
+
+        window.handleFirstClick = function() {
+            // Optionnel : déclencher un son vide pour débloquer l'audio sur iOS
+        };
+    </script>
 </body>
 </html>
