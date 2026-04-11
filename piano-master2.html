@@ -2,12 +2,11 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>PIANO MASTER 2</title>
+    <title>PIANO MASTER — FIX</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-        // ⚠️ REMPLACE PAR TES VRAIES CLÉS ICI
         const firebaseConfig = {
         apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
         authDomain:        "saphir-live.firebaseapp.com",
@@ -19,132 +18,106 @@
         databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
     };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const pianoRef = ref(db, 'piano');
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+            window.pianoRef = ref(db, 'piano');
+            console.log("Firebase connecté");
+        } catch (e) { console.error("Erreur Firebase:", e); }
 
-        window.sendToFirebase = (state) => {
-            set(pianoRef, { ...state, timestamp: Date.now() });
+        window.sendToFirebase = (data) => {
+            if (window.pianoRef) {
+                set(window.pianoRef, { ...data, timestamp: Date.now() });
+            }
         };
     </script>
     <style>
-        body { margin: 0; background: #000; color: white; overflow: hidden; font-family: sans-serif; }
-        canvas { width: 100vw; height: 60vh; display: block; background: #050505; }
-        .controls { height: 40vh; border-top: 1px solid #333; padding: 20px; }
-        .key { display: inline-block; width: 40px; height: 150px; border: 1px solid #000; background: white; cursor: pointer; }
-        .key.active { background: #00e5ff; }
+        :root { --cyan: #00e5ff; --bg: #03030a; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { width: 100%; height: 50vh; background: #000; display: block; }
+        .kbd-container { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a18; }
+        .keyboard { display: flex; padding: 20px; background: #000; border-radius: 10px; border: 1px solid #222; }
+        .key { width: 30px; height: 120px; background: #fff; border: 1px solid #000; cursor: pointer; border-radius: 0 0 5px 5px; }
+        .key.active { background: var(--cyan); box-shadow: 0 0 15px var(--cyan); transform: translateY(2px); }
+        #status { padding: 10px; font-family: monospace; color: var(--cyan); }
     </style>
 </head>
 <body>
 
 <canvas id="canvas"></canvas>
-<div class="controls">
-    <h2>PIANO MASTER - TEST VISUEL</h2>
-    <p>Clique sur les touches si le MIDI n'est pas branché :</p>
-    <div id="keyboard"></div>
+<div class="kbd-container">
+    <div id="status">En attente d'interaction...</div>
+    <div class="keyboard" id="keyboard"></div>
 </div>
 
 <script>
     const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const log = document.getElementById('log');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+    const activeNotes = new Map();
+    let isMouseDown = false;
 
-// Utilisation d'une Map pour gérer plusieurs notes simultanément
-let activeNotes = new Map();
-
-// Initialisation du clavier 
-function initKeyboard() {
+    // Création des touches de test (Octave 3 et 4)
     const kbd = document.getElementById('keyboard');
-    kbd.innerHTML = ''; // Nettoie le clavier existant
-    
-    // On crée 24 touches pour le test (2 octaves)
-    for(let i = 60; i <= 84; i++) {
+    for(let i=48; i<=72; i++) {
         const k = document.createElement('div');
         k.className = 'key';
         k.dataset.note = i;
         
-        // Gère le clic Souris
-        k.onmousedown = () => handleNoteOn(i, 100);
-        k.onmouseup = () => handleNoteOff(i);
-        k.onmouseleave = () => { if(isMouseDown) handleNoteOff(i); };
+        k.onmousedown = () => { isMouseDown = true; noteOn(i); };
+        k.onmouseenter = () => { if(isMouseDown) noteOn(i); };
+        k.onmouseup = () => { isMouseDown = false; noteOff(i); };
+        k.onmouseleave = () => { if(isMouseDown) noteOff(i); };
         
         kbd.appendChild(k);
     }
-}
+    window.onmouseup = () => { isMouseDown = false; };
 
-function handleNoteOn(note, vel) {
-    if (activeNotes.has(note)) return; // Empêche les doublons
-    
-    activeNotes.set(note, vel);
-    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
-    if(keyEl) keyEl.classList.add('active');
-    
-    log.textContent = "Notes actives : " + Array.from(activeNotes.keys()).join(', ');
-    sync();
-}
-
-function handleNoteOff(note) {
-    if (!activeNotes.has(note)) return;
-    
-    activeNotes.delete(note);
-    const keyEl = document.querySelector(`.key[data-note="${note}"]`);
-    if(keyEl) keyEl.classList.remove('active');
-    
-    log.textContent = activeNotes.size > 0 ? 
-        "Notes actives : " + Array.from(activeNotes.keys()).join(', ') : 
-        "Aucune note";
-    sync();
-}
-
-// Fonction de synchronisation CRITIQUE
-function sync() {
-    // On transforme la Map en un TABLEAU d'objets pour Firebase
-    const notesArray = [];
-    activeNotes.forEach((vel, note) => {
-        notesArray.push({
-            note: note,
-            velocity: vel
-        });
-    });
-
-    if(window.sendToFirebase) {
-        window.sendToFirebase({ 
-            notes: notesArray, 
-            animation: 'beams',
-            timestamp: Date.now() 
-        });
+    function noteOn(note) {
+        if (activeNotes.has(note)) return;
+        activeNotes.set(note, 100);
+        updateUI();
     }
-}
 
-// Boucle de rendu (Visualisation locale)
-function draw() {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // On dessine TOUTES les notes présentes dans la Map
-    activeNotes.forEach((vel, note) => {
-        const x = ((note - 21) / 88) * canvas.width;
-        const w = (canvas.width / 88) * 0.8;
-        
-        ctx.fillStyle = '#00e5ff';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00e5ff';
-        ctx.fillRect(x, canvas.height, w, -(vel / 127) * canvas.height);
-    });
-    
-    requestAnimationFrame(draw);
-}
+    function noteOff(note) {
+        activeNotes.delete(note);
+        updateUI();
+    }
 
-// Lancement
-let isMouseDown = false;
-window.addEventListener('mousedown', () => isMouseDown = true);
-window.addEventListener('mouseup', () => isMouseDown = false);
+    function updateUI() {
+        // 1. Allumer les touches visuelles
+        document.querySelectorAll('.key').forEach(k => {
+            const n = parseInt(k.dataset.note);
+            if (activeNotes.has(n)) k.classList.add('active');
+            else k.classList.remove('active');
+        });
 
-initKeyboard();
-draw();
+        // 2. Préparer les données pour Firebase
+        const notesArray = Array.from(activeNotes.entries()).map(([n, v]) => ({ note: n, velocity: v }));
+        status.textContent = "Notes : " + notesArray.map(n => n.note).join(', ');
+
+        // 3. Envoyer
+        if (window.sendToFirebase) {
+            window.sendToFirebase({ notes: notesArray, animation: 'beams' });
+        }
+    }
+
+    function render() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        activeNotes.forEach((vel, note) => {
+            const x = ((note - 21) / 88) * canvas.width;
+            ctx.fillStyle = '#00e5ff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00e5ff';
+            ctx.fillRect(x, canvas.height, 15, -vel * 2);
+        });
+        requestAnimationFrame(render);
+    }
+    render();
 </script>
 </body>
 </html>
