@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASTER — LIGHTCTRL + PIANO 88</title>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⚙️ REMPLACEZ PAR VOTRE CONFIG FIREBASE
+  const firebaseConfig = {
+        apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+        authDomain:        "saphir-live.firebaseapp.com",
+        projectId:         "saphir-live",
+        storageBucket:     "saphir-live.firebasestorage.app",
+        messagingSenderId: "719917557935",
+        appId:             "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+        measurementId:     "G-VQQ9H234NB",
+        databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
+    };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  window._lightsRef = ref(db, 'lights');
+  window._pianoRef  = ref(db, 'piano');
+  window._fbSet     = set;
+
+  window.fbPush = () => {
+    if (!window.fbState) return;
+    set(window._lightsRef, { ...window.fbState, timestamp: Date.now() });
+  };
+  window.pianoPush = () => {
+    if (!window.pianoState) return;
+    set(window._pianoRef, { ...window.pianoState, timestamp: Date.now() });
+  };
+
+  onValue(window._lightsRef, snap => {
+    const d = snap.val();
+    if (d) { window.fbState = d; }
+    const el = document.getElementById('sync-status');
+    if (el) { el.textContent='● SYNC'; el.style.color='#00ff88'; setTimeout(()=>{ el.style.color='#00d4ff'; },400); }
+  });
+
+  window.addEventListener('load', () => { if(window.fbPush) window.fbPush(); });
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #050508; --surface: #0d0d18; --border: #1a1a2e;
+  --accent: #00d4ff; --accent2: #ff6b00; --text: #c8d0e0; --dim: #4a5060;
+}
+html, body {
+  height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  display: flex; flex-direction: column;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+}
+
+/* ─── HEADER ─── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 20px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg,#0d0d18,#050508); flex-shrink: 0;
+}
+.logo { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:6px; color:var(--accent); text-shadow:0 0 20px var(--accent); }
+.logo span { color: var(--accent2); }
+#sync-status { font-size:10px; color:var(--dim); letter-spacing:3px; transition:color 0.3s; }
+.role-badge { font-size:10px; color:var(--accent2); border:1px solid var(--accent2); padding:3px 10px; letter-spacing:4px; }
+#midi-badge { font-size:10px; padding:3px 10px; border:1px solid var(--border); color:var(--dim); letter-spacing:2px; transition:all 0.3s; }
+#midi-badge.on { color:var(--accent); border-color:var(--accent); box-shadow:0 0 8px rgba(0,212,255,0.3); }
+
+/* ─── PREVIEW ─── */
+.preview-area {
+  position: relative; height: 140px; background: #000;
+  overflow: hidden; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.preview-area canvas { width:100%; height:100%; display:block; }
+.preview-label { position:absolute; top:6px; left:14px; font-size:9px; letter-spacing:4px; color:var(--dim); }
+
+/* ─── CONTROLS ─── */
+.controls {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.panel { padding: 10px 14px; border-right: 1px solid var(--border); }
+.panel:last-child { border-right: none; }
+.panel-title { font-size:9px; letter-spacing:4px; color:var(--dim); margin-bottom:8px; }
+
+/* ANIM PILLS */
+.anim-pills { display:flex; flex-wrap:wrap; gap:3px; }
+.anim-pill {
+  background:var(--surface); border:1px solid var(--border); color:var(--dim);
+  font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:1px;
+  padding:4px 7px; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.anim-pill:hover { border-color:var(--accent); color:var(--accent); }
+.anim-pill.active { border-color:var(--accent); color:var(--accent); background:rgba(0,212,255,0.1); }
+
+/* PRESETS */
+.presets { display:grid; grid-template-columns:1fr 1fr; gap:3px; margin-bottom:8px; }
+.preset-btn {
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px;
+  padding:6px 4px; cursor:pointer; transition:all 0.15s;
+}
+.preset-btn.active, .preset-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(0,212,255,0.08); }
+
+/* SLIDERS */
+.slider-group { margin-bottom:8px; }
+.slider-label { display:flex; justify-content:space-between; font-size:9px; letter-spacing:2px; color:var(--dim); margin-bottom:4px; }
+.slider-label span { color:var(--accent); }
+input[type=range] { -webkit-appearance:none; width:100%; height:2px; background:var(--border); outline:none; border-radius:2px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 6px var(--accent); }
+
+/* BEAM BTNS */
+.beam-selector { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
+.beam-btn { width:28px; height:28px; background:var(--surface); border:1px solid var(--border); color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.beam-btn.active { border-color:var(--accent2); color:var(--accent2); background:rgba(255,107,0,0.1); }
+
+/* COLORS */
+.color-row { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+.color-label { font-size:9px; letter-spacing:1px; color:var(--dim); width:44px; }
+input[type=color] { -webkit-appearance:none; width:32px; height:20px; border:1px solid var(--border); background:none; cursor:pointer; padding:1px; border-radius:2px; }
+input[type=color]::-webkit-color-swatch-wrapper { padding:0; }
+input[type=color]::-webkit-color-swatch { border:none; }
+
+/* ─── BOTTOM BAR ─── */
+.bottom-bar {
+  display: flex; align-items: center; gap:14px; padding:6px 16px;
+  border-top: 1px solid var(--border); background:linear-gradient(90deg,#0a0a14,var(--bg));
+  flex-shrink: 0;
+}
+.big-toggle { position:relative; width:54px; height:26px; cursor:pointer; flex-shrink:0; }
+.big-toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; inset:0; background:#1a1a2e; border:1px solid var(--border); border-radius:13px; transition:all 0.3s; }
+.toggle-slider::before { content:''; position:absolute; left:3px; top:3px; width:18px; height:18px; background:var(--dim); border-radius:50%; transition:all 0.3s; }
+.big-toggle input:checked + .toggle-slider { background:rgba(0,212,255,0.1); border-color:var(--accent); }
+.big-toggle input:checked + .toggle-slider::before { transform:translateX(28px); background:var(--accent); }
+.toggle-desc { font-size:10px; letter-spacing:2px; }
+.toggle-desc small { display:block; font-size:9px; color:var(--dim); margin-top:1px; }
+#active-notes-bar { margin-left:auto; font-size:10px; color:var(--dim); letter-spacing:2px; max-width:50%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.title-input {
+  background:var(--surface); border:1px solid var(--border); color:var(--text);
+  font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 8px;
+  letter-spacing:2px; width:100%; margin-top:4px;
+}
+
+/* ─── KEYBOARD ─── */
+#kb-zone {
+  flex: 1; min-height: 0; background: #000;
+  border-top: 2px solid var(--border); display: flex; flex-direction: column; overflow: hidden;
+}
+#kb-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:4px 12px; flex-shrink:0;
+}
+#kb-label { font-size:8px; letter-spacing:3px; color:var(--dim); }
+#kb-wrap { flex:1; position:relative; overflow:hidden; }
+#kb-canvas { width:100%; height:100%; display:block; cursor:pointer; }
+
+/* ─── MODAL ─── */
+.config-notice { position:fixed; inset:0; background:rgba(0,0,0,0.93); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.config-box { border:1px solid var(--accent); padding:28px; max-width:500px; width:90%; background:var(--surface); box-shadow:0 0 60px rgba(0,212,255,0.1); }
+.config-box h2 { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:6px; color:var(--accent); margin-bottom:14px; }
+.config-box p { font-size:11px; line-height:1.8; color:var(--text); margin-bottom:10px; }
+.config-box code { color:var(--accent2); background:rgba(255,107,0,0.1); padding:1px 5px; }
+.config-close { background:transparent; border:1px solid var(--accent); color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:3px; padding:7px 18px; cursor:pointer; margin-top:8px; }
+.config-close:hover { background:rgba(0,212,255,0.08); }
+</style>
+</head>
+<body>
+
+<div class="config-notice" id="configNotice">
+  <div class="config-box">
+    <h2>⚙ CONFIG FIREBASE + MIDI</h2>
+    <p>1. Remplacez <code>firebaseConfig</code> dans le <code>&lt;script type="module"&gt;</code> avec vos clés Firebase (Realtime Database activé).</p>
+    <p>2. Copiez la même config dans <code>slave.html</code>. Réglez les règles de sécurité sur <code>read:true, write:true</code>.</p>
+    <p>3. Branchez votre piano Yamaha USB avant l'ouverture — l'accès MIDI sera demandé automatiquement (<code>Chrome/Edge</code> requis).</p>
+    <button class="config-close" onclick="document.getElementById('configNotice').style.display='none'">COMPRIS — DÉMARRER</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">LIGHT<span>CTRL</span></div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <div id="midi-badge">● MIDI INACTIF</div>
+    <div id="sync-status">● HORS LIGNE</div>
+  </div>
+  <div class="role-badge">MASTER</div>
+</header>
+
+<div class="preview-area">
+  <div class="preview-label">APERÇU — MODE BEAMS</div>
+  <canvas id="previewCanvas"></canvas>
+</div>
+
+<div class="controls">
+
+  <!-- COL 1: ANIMATION MODE -->
+  <div class="panel">
+    <div class="panel-title">// MODE ANIMATION (envoyé au slave)</div>
+    <div class="anim-pills" id="animPills">
+      <button class="anim-pill active" data-anim="beams"     onclick="setAnimMode('beams',this)">⚡ BEAMS</button>
+      <button class="anim-pill" data-anim="titleMode"  onclick="setAnimMode('titleMode',this)">✨ TITRE</button>
+      <button class="anim-pill" data-anim="gravity"    onclick="setAnimMode('gravity',this)">🌌 STARDUST</button>
+      <button class="anim-pill" data-anim="bgMode"     onclick="setAnimMode('bgMode',this)">🎨 FLASHY</button>
+      <button class="anim-pill" data-anim="immersion"  onclick="setAnimMode('immersion',this)">🌈 IMMERSION</button>
+      <button class="anim-pill" data-anim="flowers"    onclick="setAnimMode('flowers',this)">🌸 FLEURS</button>
+      <button class="anim-pill" data-anim="hearts"     onclick="setAnimMode('hearts',this)">❤️ CŒURS</button>
+      <button class="anim-pill" data-anim="lightTrail" onclick="setAnimMode('lightTrail',this)">🖊 TRAIL</button>
+      <button class="anim-pill" data-anim="neonRain"   onclick="setAnimMode('neonRain',this)">🌈 NÉON RAIN</button>
+      <button class="anim-pill" data-anim="aurora"     onclick="setAnimMode('aurora',this)">🌌 AURORA</button>
+      <button class="anim-pill" data-anim="fireworks"  onclick="setAnimMode('fireworks',this)">🎆 FIREWORKS</button>
+      <button class="anim-pill" data-anim="galaxy"     onclick="setAnimMode('galaxy',this)">🚀 GALAXY</button>
+      <button class="anim-pill" data-anim="waves"      onclick="setAnimMode('waves',this)">🌊 WAVES</button>
+      <button class="anim-pill" data-anim="spiral"     onclick="setAnimMode('spiral',this)">🌀 SPIRAL</button>
+      <button class="anim-pill" data-anim="explosion"  onclick="setAnimMode('explosion',this)">💥 EXPLOSION</button>
+      <button class="anim-pill" data-anim="tunnel"     onclick="setAnimMode('tunnel',this)">🕳 TUNNEL</button>
+      <button class="anim-pill" data-anim="plasma"     onclick="setAnimMode('plasma',this)">🎆 PLASMA</button>
+      <button class="anim-pill" data-anim="lightning"  onclick="setAnimMode('lightning',this)">⚡ LIGHTNING</button>
+      <button class="anim-pill" data-anim="ripple"     onclick="setAnimMode('ripple',this)">💧 RIPPLE</button>
+      <button class="anim-pill" data-anim="spectrum"   onclick="setAnimMode('spectrum',this)">📊 SPECTRUM</button>
+      <button class="anim-pill" data-anim="fire"       onclick="setAnimMode('fire',this)">🔥 FIRE</button>
+      <button class="anim-pill" data-anim="staff"      onclick="setAnimMode('staff',this)">🎼 PARTITION</button>
+    </div>
+  </div>
+
+  <!-- COL 2: BEAM CONFIG -->
+  <div class="panel">
+    <div class="panel-title">// PRESETS BEAMS</div>
+    <div class="presets">
+      <button class="preset-btn active" data-preset="sweep"  onclick="setPreset('sweep',this)">SWEEP</button>
+      <button class="preset-btn" data-preset="pulse"  onclick="setPreset('pulse',this)">PULSE</button>
+      <button class="preset-btn" data-preset="strobe" onclick="setPreset('strobe',this)">STROBE</button>
+      <button class="preset-btn" data-preset="orbit"  onclick="setPreset('orbit',this)">ORBIT</button>
+      <button class="preset-btn" data-preset="fan"    onclick="setPreset('fan',this)">FAN</button>
+      <button class="preset-btn" data-preset="chase"  onclick="setPreset('chase',this)">CHASE</button>
+    </div>
+    <div class="panel-title">// FAISCEAUX</div>
+    <div class="beam-selector">
+      <button class="beam-btn" onclick="setBeams(1,this)">1</button>
+      <button class="beam-btn" onclick="setBeams(2,this)">2</button>
+      <button class="beam-btn" onclick="setBeams(3,this)">3</button>
+      <button class="beam-btn active" onclick="setBeams(4,this)">4</button>
+      <button class="beam-btn" onclick="setBeams(6,this)">6</button>
+      <button class="beam-btn" onclick="setBeams(8,this)">8</button>
+    </div>
+  </div>
+
+  <!-- COL 3: DYNAMIQUE + TITRE -->
+  <div class="panel">
+    <div class="panel-title">// DYNAMIQUE</div>
+    <div class="slider-group">
+      <div class="slider-label">VITESSE <span id="speedVal">3</span></div>
+      <input type="range" min="1" max="10" value="3" oninput="updateParam('speed',this.value,'speedVal')">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">GLOW <span id="glowVal">80</span>%</div>
+      <input type="range" min="10" max="100" value="80" oninput="updateParam('glowIntensity',this.value,'glowVal')">
+    </div>
+    <div class="panel-title" style="margin-top:6px;">// TITRE (mode Titre)</div>
+    <input type="text" id="songTitle" class="title-input" value="SAPHIR LIVE!" oninput="pushTitle()">
+  </div>
+
+  <!-- COL 4: COULEURS -->
+  <div class="panel">
+    <div class="panel-title">// COULEURS BEAMS</div>
+    <div class="color-row">
+      <div class="color-label">BEAM 1</div>
+      <input type="color" value="#ffffff" onchange="updateColor('color1',this.value)">
+      <span id="c1hex" style="font-size:9px;color:var(--dim)">#ffffff</span>
+    </div>
+    <div class="color-row">
+      <div class="color-label">BEAM 2</div>
+      <input type="color" value="#00d4ff" onchange="updateColor('color2',this.value)">
+      <span id="c2hex" style="font-size:9px;color:var(--dim)">#00d4ff</span>
+    </div>
+    <div class="color-row">
+      <div class="color-label">BEAM 3</div>
+      <input type="color" value="#ff6b00" onchange="updateColor('color3',this.value)">
+      <span id="c3hex" style="font-size:9px;color:var(--dim)">#ff6b00</span>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <label class="big-toggle">
+    <input type="checkbox" id="masterToggle" checked onchange="toggleActive(this)">
+    <span class="toggle-slider"></span>
+  </label>
+  <div class="toggle-desc">PROJECTEURS
+    <small id="toggleStatus">ACTIFS — DIFFUSION EN COURS</small>
+  </div>
+  <div id="active-notes-bar">AUCUNE NOTE</div>
+</div>
+
+<!-- KEYBOARD -->
+<div id="kb-zone">
+  <div id="kb-topbar">
+    <div id="kb-label">⬛ CLAVIER 88 TOUCHES — CLIC SOURIS | MIDI USB YAMAHA | VÉLOCITÉ = LUMINOSITÉ</div>
+  </div>
+  <div id="kb-wrap">
+    <canvas id="kb-canvas"></canvas>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+window.fbState = window.fbState || {
+  preset:'sweep', speed:3, color1:'#ffffff', color2:'#00d4ff', color3:'#ff6b00',
+  beamCount:4, glowIntensity:80, active:true, animMode:'beams'
+};
+window.pianoState = window.pianoState || {
+  activeNotes:{}, animMode:'beams', title:'SAPHIR LIVE!'
+};
+
+// ══════════════════════════════════════════════
+//  KEYBOARD — 88 TOUCHES CANVAS
+// ══════════════════════════════════════════════
+const kbCanvas = document.getElementById('kb-canvas');
+const kbCtx    = kbCanvas.getContext('2d');
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const BLACK_SEM  = new Set([1,3,6,8,10]);
+function isBlack(n){ return BLACK_SEM.has(n % 12); }
+
+const ALL_NOTES = [];
+for (let n=21; n<=108; n++) ALL_NOTES.push(n);
+const WHITE_NOTES = ALL_NOTES.filter(n => !isBlack(n));
+const BLACK_NOTES = ALL_NOTES.filter(n =>  isBlack(n));
+
+let whiteKeys=[], blackKeys=[];
+const activeNotes = new Map(); // note → { velocity, color }
+
+function buildLayout(W, H) {
+  whiteKeys=[]; blackKeys=[];
+  const ww = W / WHITE_NOTES.length;
+  // Map each note to its white-key X
+  const whiteX = new Map();
+  let wi=0;
+  ALL_NOTES.forEach(n => { if(!isBlack(n)){ whiteX.set(n, wi*ww); wi++; } });
+  WHITE_NOTES.forEach((n,i) => whiteKeys.push({note:n, x:i*ww, w:ww, h:H}));
+  ALL_NOTES.forEach(n => {
+    if(isBlack(n)){
+      const prev = n-1;
+      if(whiteX.has(prev)){
+        const bw=ww*0.58, bh=H*0.63;
+        blackKeys.push({note:n, x:whiteX.get(prev)+ww-bw*0.45, w:bw, h:bh});
+      }
+    }
+  });
+}
+
+function noteColor(note, velocity) {
+  const hue = (note % 12) * 30;
+  return `hsl(${hue},${70+(velocity/127)*30}%,${45+(velocity/127)*25}%)`;
+}
+
+function drawKeyboard() {
+  const W=kbCanvas.width, H=kbCanvas.height;
+  if (!W||!H) return;
+  buildLayout(W,H);
+  kbCtx.clearRect(0,0,W,H);
+
+  // White keys
+  whiteKeys.forEach(k => {
+    const a = activeNotes.get(k.note);
+    kbCtx.save();
+    if (a) {
+      kbCtx.fillStyle = a.color;
+      kbCtx.shadowBlur=22; kbCtx.shadowColor=a.color;
+    } else { kbCtx.fillStyle='#eee'; }
+    kbCtx.fillRect(k.x+0.5, 0, k.w-1, k.h);
+    kbCtx.strokeStyle='#2a2a2a'; kbCtx.lineWidth=0.5;
+    kbCtx.strokeRect(k.x+0.5, 0, k.w-1, k.h);
+    // C label
+    if (k.note%12===0) {
+      kbCtx.fillStyle = a ? '#000':'#666';
+      kbCtx.font=`${Math.max(6,k.w*0.38)}px monospace`;
+      kbCtx.textAlign='center';
+      kbCtx.shadowBlur=0;
+      kbCtx.fillText('C'+(Math.floor(k.note/12)-1), k.x+k.w/2, k.h-4);
+    }
+    kbCtx.restore();
+  });
+  // Black keys
+  blackKeys.forEach(k => {
+    const a = activeNotes.get(k.note);
+    kbCtx.save();
+    if (a) {
+      kbCtx.fillStyle=a.color; kbCtx.shadowBlur=18; kbCtx.shadowColor=a.color;
+    } else { kbCtx.fillStyle='#111'; }
+    kbCtx.fillRect(k.x, 0, k.w, k.h);
+    kbCtx.strokeStyle='#000'; kbCtx.lineWidth=0.5;
+    kbCtx.strokeRect(k.x, 0, k.w, k.h);
+    kbCtx.restore();
+  });
+}
+
+function resizeKb() {
+  const wrap=document.getElementById('kb-wrap');
+  kbCanvas.width=wrap.clientWidth; kbCanvas.height=wrap.clientHeight;
+  drawKeyboard();
+}
+window.addEventListener('resize', resizeKb);
+setTimeout(resizeKb,80);
+setInterval(drawKeyboard,40);
+
+// ── Note trigger ──
+function noteOn(note, velocity) {
+  if (note<21||note>108) return;
+  activeNotes.set(note, { velocity, color: noteColor(note,velocity) });
+  pushPianoState('noteOn', note, velocity);
+  updateNoteBar();
+  handleNoteOn(note, velocity);
+}
+function handleNoteOn(note, velocity) {
+  const color = `hsl(${(note % 12) * 30}, 100%, 70%)`;
+  
+  // Envoyer la note à Firebase (existant)
+  if(window.pianoState) {
+    window.pianoState.activeNotes[note] = { velocity, color, ts: Date.now() };
+    window.pianoState.lastEvent = 'noteOn';
+    window.pianoState.lastNote = note;
+    window.pianoState.lastVelocity = velocity;
+    window.pianoState.timestamp = Date.now();
+    window.pianoPush();
+  }
+  
+  // NOUVEAU : Déclencher l'animation locale sur le master
+  if(window._onNoteOn) {
+    window._onNoteOn(note, velocity, color);
+  }
+}
+function noteOff(note) {
+  activeNotes.delete(note);
+  pushPianoState('noteOff', note, 0);
+  updateNoteBar();
+}
+
+function pushPianoState(event, note, velocity) {
+  const notesObj={};
+  activeNotes.forEach((v,k) => { notesObj[k]={ velocity:v.velocity, color:v.color }; });
+  window.pianoState = {
+    activeNotes: notesObj,
+    animMode: window.fbState.animMode||'beams',
+    lastEvent: event, lastNote:note, lastVelocity:velocity,
+    lastColor: activeNotes.has(note) ? activeNotes.get(note).color : '',
+    title: document.getElementById('songTitle').value,
+    timestamp: Date.now()
+  };
+  if (window.pianoPush) window.pianoPush();
+}
+
+function updateNoteBar() {
+  const el=document.getElementById('active-notes-bar');
+  if (!activeNotes.size){ el.textContent='AUCUNE NOTE'; return; }
+  el.textContent=Array.from(activeNotes.keys()).map(n=>NOTE_NAMES[n%12]+(Math.floor(n/12)-1)).join(' · ');
+}
+
+// ── Mouse / Touch ──
+function noteFromPos(x,y) {
+  for(const k of blackKeys) { if(x>=k.x&&x<=k.x+k.w&&y>=0&&y<=k.h) return k.note; }
+  for(const k of whiteKeys) { if(x>=k.x&&x<=k.x+k.w&&y>=0&&y<=k.h) return k.note; }
+  return null;
+}
+
+let mouseDown=false, lastNote=null;
+kbCanvas.addEventListener('mousedown', e=>{
+  mouseDown=true;
+  const r=kbCanvas.getBoundingClientRect();
+  const n=noteFromPos(e.clientX-r.left,e.clientY-r.top);
+  if(n!==null){ lastNote=n; noteOn(n,100); }
+});
+kbCanvas.addEventListener('mousemove', e=>{
+  if(!mouseDown) return;
+  const r=kbCanvas.getBoundingClientRect();
+  const n=noteFromPos(e.clientX-r.left,e.clientY-r.top);
+  if(n!==null&&n!==lastNote){ if(lastNote!==null) noteOff(lastNote); lastNote=n; noteOn(n,90); }
+});
+window.addEventListener('mouseup', ()=>{ if(mouseDown&&lastNote!==null){ noteOff(lastNote); lastNote=null; } mouseDown=false; });
+
+kbCanvas.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const r=kbCanvas.getBoundingClientRect();
+  const t=e.touches[0];
+  const n=noteFromPos(t.clientX-r.left,t.clientY-r.top);
+  if(n!==null){ lastNote=n; noteOn(n,100); }
+},{passive:false});
+kbCanvas.addEventListener('touchend', e=>{
+  e.preventDefault();
+  if(lastNote!==null){ noteOff(lastNote); lastNote=null; }
+},{passive:false});
+
+// ══════════════════════════════════════════════
+//  MIDI — YAMAHA USB
+// ══════════════════════════════════════════════
+async function initMIDI() {
+  if (!navigator.requestMIDIAccess) return;
+  try {
+    const access = await navigator.requestMIDIAccess({ sysex:false });
+    const bind = (input) => {
+      const badge=document.getElementById('midi-badge');
+      badge.textContent='● '+input.name.substring(0,20).toUpperCase();
+      badge.classList.add('on');
+      input.onmidimessage = e => {
+        const [st,n,v]=e.data, type=st&0xf0;
+        if(type===0x90&&v>0)  noteOn(n,v);
+        else if(type===0x80||(type===0x90&&v===0)) noteOff(n);
+        else if(type===0xb0&&n===64){ // sustain pedal
+          window.pianoState.pedal=(v>=64);
+          if(window.pianoPush) window.pianoPush();
+        }
+      };
+    };
+    const inputs=Array.from(access.inputs.values());
+    const yamaha=inputs.find(i=>/yamaha/i.test(i.name))||inputs[0];
+    if(yamaha) bind(yamaha);
+    else { document.getElementById('midi-badge').textContent='● AUCUN PÉRIPH.'; }
+    access.onstatechange=ev=>{ if(ev.port.state==='connected'&&ev.port.type==='input') bind(ev.port); };
+  } catch(err){ document.getElementById('midi-badge').textContent='● MIDI REFUSÉ'; console.warn(err); }
+}
+initMIDI();
+
+// ══════════════════════════════════════════════
+//  PREVIEW CANVAS (beams)
+// ══════════════════════════════════════════════
+const pCv=document.getElementById('previewCanvas'), pCtx=pCv.getContext('2d');
+let pt=0;
+function resizePrev(){ pCv.width=pCv.offsetWidth; pCv.height=pCv.offsetHeight; }
+resizePrev(); window.addEventListener('resize',resizePrev);
+
+function hexA(hex,a){
+  if(!hex||hex[0]!=='#') return `rgba(0,212,255,${a})`;
+  return `rgba(${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)},${a})`;
+}
+function pBeam(cx,cy,ang,col,len,lw,glow){
+  const r=ang*Math.PI/180, ex=cx+Math.cos(r)*len, ey=cy+Math.sin(r)*len;
+  const g=pCtx.createLinearGradient(cx,cy,ex,ey);
+  g.addColorStop(0,col+'ff'); g.addColorStop(0.5,col+'aa'); g.addColorStop(1,col+'00');
+  pCtx.save(); pCtx.shadowBlur=glow*0.4; pCtx.shadowColor=col;
+  pCtx.strokeStyle=g; pCtx.lineWidth=lw; pCtx.lineCap='round';
+  pCtx.beginPath(); pCtx.moveTo(cx,cy); pCtx.lineTo(ex,ey); pCtx.stroke(); pCtx.restore();
+}
+function animPrev(){
+  requestAnimationFrame(animPrev);
+  const s=window.fbState||{}, W=pCv.width, H=pCv.height;
+  pCtx.clearRect(0,0,W,H); pCtx.fillStyle='#000'; pCtx.fillRect(0,0,W,H);
+  if(!s.active){
+    pCtx.fillStyle='rgba(255,255,255,0.04)'; pCtx.font='9px Share Tech Mono';
+    pCtx.textAlign='center'; pCtx.fillText('● INACTIF',W/2,H/2); return;
+  }
+  pt+=parseFloat(s.speed||3)*0.02;
+  const cols=[s.color1||'#fff',s.color2||'#00d4ff',s.color3||'#ff6b00'];
+  const cnt=parseInt(s.beamCount||4), glow=parseInt(s.glowIntensity||80), len=Math.max(W,H)*0.9;
+  const pos=[{x:W*.15,y:H},{x:W*.5,y:H},{x:W*.85,y:H},{x:0,y:H*.5},{x:W,y:H*.5},{x:W*.3,y:H},{x:W*.7,y:H},{x:W*.5,y:H}];
+  for(let i=0;i<cnt;i++){
+    const p=pos[i%pos.length], c=cols[i%3];
+    let a; const pr=s.preset;
+    if(pr==='sweep')  a=-90+Math.sin(pt+i*0.8)*45;
+    else if(pr==='pulse')  a=-90+Math.sin(pt*2+i*(360/cnt)*Math.PI/180)*30;
+    else if(pr==='strobe') a=-90+(Math.floor(pt*3+i)%5-2)*20;
+    else if(pr==='orbit')  a=(pt*60+i*(360/cnt))%360-270;
+    else if(pr==='fan')    a=-90+(i-(cnt-1)/2)*(60/Math.max(cnt-1,1))+Math.sin(pt+i)*8;
+    else if(pr==='chase')  a=-90+Math.sin(pt*1.5+i*1.2)*55;
+    else a=-90+Math.sin(pt+i)*40;
+    const gm=glow/100;
+    pCtx.globalAlpha=0.85; pBeam(p.x,p.y,a,c,len,3+gm*4,glow*gm);
+    pCtx.globalAlpha=0.3;  pBeam(p.x,p.y,a,c,len,10+gm*8,glow*gm*0.5);
+    pCtx.globalAlpha=1;
+  }
+}
+animPrev();
+
+// ══════════════════════════════════════════════
+//  CONTROL FUNCTIONS
+// ══════════════════════════════════════════════
+function push(){ if(window.fbPush) window.fbPush(); }
+
+function setAnimMode(mode, btn){
+  window.fbState.animMode = mode;
+  // On met aussi à jour l'état du piano pour que le slave reçoive le changement de mode
+  if(window.pianoState) {
+    window.pianoState.animMode = mode;
+  } else {
+    window.pianoState = { animMode: mode, activeNotes: {} };
+  }
+  
+  document.querySelectorAll('.anim-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  // Envoi aux deux références Firebase
+  push(); // Met à jour 'lights'
+  if(window.pianoPush) window.pianoPush(); // Met à jour 'piano'
+}
+function setPreset(preset, btn){
+  window.fbState.preset=preset;
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); push();
+}
+function setBeams(n, btn){
+  window.fbState.beamCount=n;
+  document.querySelectorAll('.beam-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); push();
+}
+function updateParam(key, val, id){
+  window.fbState[key]=parseFloat(val);
+  document.getElementById(id).textContent=val; push();
+}
+function updateColor(key, val){
+  window.fbState[key]=val;
+  const m={color1:'c1hex',color2:'c2hex',color3:'c3hex'};
+  document.getElementById(m[key]).textContent=val; push();
+}
+function toggleActive(el){
+  window.fbState.active=el.checked;
+  document.getElementById('toggleStatus').textContent=el.checked?'ACTIFS — DIFFUSION EN COURS':'INACTIFS — EN VEILLE';
+  push();
+}
+function pushTitle(){
+  if(window.pianoState) window.pianoState.title=document.getElementById('songTitle').value;
+  if(window.pianoPush) window.pianoPush();
+}
+</script>
+</body>
+</html>
