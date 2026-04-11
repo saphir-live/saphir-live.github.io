@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PIANO MASTER — MIDI → LIGHT</title>
+    <meta charset="UTF-8">
+    <title>PIANO MASTER 2</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-  // ⚙️ CONFIG FIREBASE (À REMPLIR)
-  const firebaseConfig = {
+        // ⚠️ REMPLACE PAR TES VRAIES CLÉS ICI
+        const firebaseConfig = {
         apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
         authDomain:        "saphir-live.firebaseapp.com",
         projectId:         "saphir-live",
@@ -21,204 +19,79 @@
         databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
     };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const pianoRef = ref(db, 'piano');
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const pianoRef = ref(db, 'piano');
 
-  window.pianoState = {
-    animation: 'beams',
-    notes: [],
-    pedal: false,
-    energy: 0,
-    timestamp: 0
-  };
-
-  window.pushState = function() {
-    if(window.fbReady) {
-        set(pianoRef, { ...window.pianoState, timestamp: Date.now() });
-    }
-  };
-
-  onValue(pianoRef, (snap) => {
-    const el = document.getElementById('fbDot');
-    if (el) { el.style.background = '#00ff88'; setTimeout(() => el.style.background = '#00d4ff', 300); }
-  });
-
-  window.fbReady = true;
-</script>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=IBM+Plex+Mono:wght@300;400;600&display=swap');
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #03030a; --s1: #0a0a18; --s2: #0f0f20; --border: #1c1c35;
-  --cyan: #00e5ff; --amber: #ffab00; --rose: #ff4d6d; --lime: #aaff00;
-  --text: #b0b8d0; --dim: #3a4060;
-}
-body { height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; }
-.app { display: grid; grid-template-rows: 56px 1fr 140px; grid-template-columns: 260px 1fr; height: 100vh; }
-header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--s1); }
-.logo { font-family: 'Syncopate', sans-serif; font-size: 14px; letter-spacing: 4px; color: var(--cyan); }
-.status-pill { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); padding: 5px 12px; font-size: 10px; }
-#fbDot, #midiDot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
-.sidebar { border-right: 1px solid var(--border); background: var(--s1); }
-.anim-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 11px; }
-.anim-item.active { color: var(--cyan); border-left: 3px solid var(--cyan); background: rgba(0,229,255,0.05); }
-.main { display: flex; flex-direction: column; background: #000; position: relative; }
-#previewCanvas { flex: 1; width: 100%; }
-.piano-keyboard { display: flex; height: 100px; padding: 0 10px 10px; background: #000; border-top: 1px solid var(--border); user-select: none; }
-.key { position: relative; border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer; }
-.key.white { width: 1.13%; height: 100%; background: #1a1a2e; z-index: 1; }
-.key.black { width: 0.7%; height: 60%; background: #000; margin: 0 -0.35%; z-index: 2; border: 1px solid #333; }
-.key.active.white { background: var(--cyan) !important; box-shadow: 0 0 20px var(--cyan); }
-.key.active.black { background: var(--rose) !important; box-shadow: 0 0 20px var(--rose); }
-.midi-bar { grid-column: 1 / -1; background: var(--s2); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(6, 1fr); }
-.midi-cell { padding: 15px; border-right: 1px solid var(--border); }
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal-box { background: var(--s1); padding: 30px; border: 1px solid var(--cyan); text-align: center; }
-</style>
+        window.sendToFirebase = (state) => {
+            set(pianoRef, { ...state, timestamp: Date.now() });
+        };
+    </script>
+    <style>
+        body { margin: 0; background: #000; color: white; overflow: hidden; font-family: sans-serif; }
+        canvas { width: 100vw; height: 60vh; display: block; background: #050505; }
+        .controls { height: 40vh; border-top: 1px solid #333; padding: 20px; }
+        .key { display: inline-block; width: 40px; height: 150px; border: 1px solid #000; background: white; cursor: pointer; }
+        .key.active { background: #00e5ff; }
+    </style>
 </head>
 <body>
 
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <h2 style="color:var(--cyan); margin-bottom:15px;">PIANO MASTER</h2>
-    <button style="padding:10px 20px; cursor:pointer;" onclick="startApp()">ACTIVER L'INTERFACE</button>
-  </div>
-</div>
-
-<div class="app">
-  <header>
-    <div class="logo">PIANO MASTER</div>
-    <div style="display:flex; gap:10px;">
-        <div class="status-pill"><div id="midiDot"></div> MIDI</div>
-        <div class="status-pill"><div id="fbDot"></div> FIREBASE</div>
-    </div>
-  </header>
-  <div class="sidebar">
-    <div class="anim-item active" onclick="setAnim('beams', this)">BEAMS</div>
-    <div class="anim-item" onclick="setAnim('aurora', this)">AURORA</div>
-    <div class="anim-item" onclick="setAnim('particles', this)">PARTICLES</div>
-  </div>
-  <div class="main">
-    <canvas id="previewCanvas"></canvas>
-    <div class="piano-keyboard" id="keyboard"></div>
-  </div>
-  <div class="midi-bar">
-    <div class="midi-cell"><div>NOTE</div><div id="noteDisplay" style="font-size:20px; color:var(--cyan);">—</div></div>
-    <div class="midi-cell"><div>VELOCITY</div><div id="velNum" style="font-size:20px;">0</div></div>
-    <div class="midi-cell"><div>ENERGY</div><div id="energyNum" style="font-size:20px;">0</div></div>
-  </div>
+<canvas id="canvas"></canvas>
+<div class="controls">
+    <h2>PIANO MASTER - TEST VISUEL</h2>
+    <p>Clique sur les touches si le MIDI n'est pas branché :</p>
+    <div id="keyboard"></div>
 </div>
 
 <script>
-const activeNotes = new Map();
-let currentAnim = 'beams';
-let energy = 0;
-let isMouseDown = false;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let activeNotes = new Map();
 
-function startApp() {
-    document.getElementById('modal').remove();
-    initKeyboard();
-    initMIDI();
+    // Redimensionnement
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight * 0.6; }
+    window.onresize = resize; resize();
+
+    // Création clavier test
+    const kbd = document.getElementById('keyboard');
+    for(let i=60; i<72; i++) {
+        const btn = document.createElement('div');
+        btn.className = 'key';
+        btn.onmousedown = () => noteOn(i, 100);
+        btn.onmouseup = () => noteOff(i);
+        kbd.appendChild(btn);
+    }
+
+    function noteOn(note, vel) {
+        activeNotes.set(note, vel);
+        update();
+    }
+
+    function noteOff(note) {
+        activeNotes.delete(note);
+        update();
+    }
+
+    function update() {
+        const notesArray = Array.from(activeNotes.entries()).map(([n, v]) => ({note: n, velocity: v}));
+        if(window.sendToFirebase) {
+            window.sendToFirebase({ notes: notesArray, animation: 'beams' });
+        }
+    }
+
+    function render() {
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        
+        activeNotes.forEach((vel, note) => {
+            const x = ((note - 21) / 88) * canvas.width;
+            ctx.fillStyle = '#00e5ff';
+            ctx.fillRect(x, canvas.height, 20, -vel * 2);
+        });
+        requestAnimationFrame(render);
+    }
     render();
-}
-
-function initKeyboard() {
-  const keyboard = document.getElementById('keyboard');
-  const pattern = ['w','b','w','b','w','w','b','w','b','w','b','w'];
-  
-  window.addEventListener('mousedown', () => isMouseDown = true);
-  window.addEventListener('mouseup', () => isMouseDown = false);
-
-  for (let i = 21; i <= 108; i++) {
-    const key = document.createElement('div');
-    const type = pattern[i % 12];
-    key.className = `key ${type === 'w' ? 'white' : 'black'}`;
-    key.dataset.note = i;
-    
-    // Événements Souris
-    key.addEventListener('mousedown', () => handleNoteOn(i, 100));
-    key.addEventListener('mouseenter', () => { if(isMouseDown) handleNoteOn(i, 100); });
-    key.addEventListener('mouseup', () => handleNoteOff(i));
-    key.addEventListener('mouseleave', () => handleNoteOff(i));
-    
-    keyboard.appendChild(key);
-  }
-}
-
-async function initMIDI() {
-  if (navigator.requestMIDIAccess) {
-    try {
-      const midi = await navigator.requestMIDIAccess();
-      document.getElementById('midiDot').style.background = '#ffaa00';
-      midi.inputs.forEach(input => {
-        document.getElementById('midiDot').style.background = '#00ff88';
-        input.onmidimessage = (msg) => {
-            const [status, note, vel] = msg.data;
-            if((status & 0xf0) === 0x90 && vel > 0) handleNoteOn(note, vel);
-            else if((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && vel === 0)) handleNoteOff(note);
-        };
-      });
-    } catch(e) { console.log("MIDI bloqué ou non supporté"); }
-  }
-}
-
-function handleNoteOn(note, vel) {
-  if (activeNotes.has(note)) return; // Évite les répétitions si on glisse
-  activeNotes.set(note, { vel, time: Date.now() });
-  const key = document.querySelector(`.key[data-note="${note}"]`);
-  if(key) key.classList.add('active');
-  
-  energy = Math.min(1, energy + 0.15);
-  document.getElementById('noteDisplay').textContent = note;
-  document.getElementById('velNum').textContent = vel;
-  
-  sync();
-}
-
-function handleNoteOff(note) {
-  activeNotes.delete(note);
-  const key = document.querySelector(`.key[data-note="${note}"]`);
-  if(key) key.classList.remove('active');
-  sync();
-}
-
-function sync() {
-  if (window.fbReady) {
-    window.pianoState.notes = Array.from(activeNotes.entries()).map(([n, d]) => ({note: n, velocity: d.vel}));
-    window.pianoState.energy = energy;
-    window.pianoState.animation = currentAnim;
-    window.pushState();
-  }
-}
-
-function setAnim(anim, el) {
-    currentAnim = anim;
-    document.querySelectorAll('.anim-item').forEach(i => i.classList.remove('active'));
-    el.classList.add('active');
-    sync();
-}
-
-// VISUALISATION SIMPLE POUR TESTER
-const canvas = document.getElementById('previewCanvas');
-const ctx = canvas.getContext('2d');
-function render() {
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0,0,canvas.width, canvas.height);
-  
-  energy = Math.max(0, energy - 0.01);
-  document.getElementById('energyNum').textContent = Math.round(energy * 100);
-
-  activeNotes.forEach((data, note) => {
-    const x = ((note-21)/88) * canvas.width;
-    ctx.fillStyle = currentAnim === 'beams' ? '#00e5ff' : '#ff4d6d';
-    ctx.fillRect(x, canvas.height - 100, 10, -data.vel * 2);
-  });
-  requestAnimationFrame(render);
-}
 </script>
 </body>
 </html>
