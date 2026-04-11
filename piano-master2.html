@@ -33,8 +33,6 @@
     bpm: 0,
     energy: 0,
     register: 'mid',
-    lastNote: null,
-    lastVelocity: 0,
     timestamp: 0,
     active: true
   };
@@ -142,13 +140,14 @@ header {
   display: flex; justify-content: center;
   background: #000; padding: 10px 10px 5px 10px;
   border-top: 1px solid var(--border);
-  height: 100px; position: relative;
+  height: 110px; position: relative;
+  user-select: none;
 }
-.key { position: relative; border: 1px solid #111; border-radius: 0 0 3px 3px; transition: all 0.1s ease; }
+.key { position: relative; border: 1px solid #111; border-radius: 0 0 4px 4px; transition: all 0.05s ease; cursor: pointer; }
 .key.white { width: 1.13%; height: 100%; background: linear-gradient(180deg, #0a0a18 0%, #1a1a2e 100%); z-index: 1; }
 .key.black { width: 0.7%; height: 60%; background: #000; margin-left: -0.35%; margin-right: -0.35%; z-index: 2; border: 1px solid #333; }
-.key.active.white { background: var(--cyan); box-shadow: 0 0 15px var(--cyan); transform: translateY(2px); }
-.key.active.black { background: var(--rose); box-shadow: 0 0 15px var(--rose); transform: translateY(2px); }
+.key.active.white { background: var(--cyan) !important; box-shadow: 0 0 20px var(--cyan); transform: translateY(2px); }
+.key.active.black { background: var(--rose) !important; box-shadow: 0 0 20px var(--rose); transform: translateY(2px); }
 
 .midi-bar { grid-column: 1 / -1; background: var(--s2); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; }
 .midi-cell { padding: 12px 16px; border-right: 1px solid var(--border); }
@@ -182,7 +181,7 @@ header {
   <div class="modal-box">
     <h2>CONFIGURATION</h2>
     <p>1. Configurez vos clés Firebase dans le script.</p>
-    <p>2. Branchez votre piano MIDI.</p>
+    <p>2. Branchez votre piano MIDI ou utilisez le clavier virtuel.</p>
     <button class="modal-btn" onclick="document.getElementById('modal').remove(); initMIDI();">DÉMARRER</button>
   </div>
 </div>
@@ -215,7 +214,7 @@ header {
   </div>
 
   <div class="midi-bar">
-    <div class="midi-cell"><div class="midi-cell-label">APPAREIL</div><div id="deviceName">...</div></div>
+    <div class="midi-cell"><div class="midi-cell-label">APPAREIL</div><div id="deviceName">VIRTUEL / ATTENTE</div></div>
     <div class="midi-cell"><div class="midi-cell-label">NOTE</div><div class="midi-cell-val" id="noteDisplay">—</div></div>
     <div class="midi-cell">
         <div class="midi-cell-label">VÉLOCITÉ</div>
@@ -229,21 +228,36 @@ header {
 
 <script>
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const CHORD_PATTERNS = {'0,4,7':'MAJ','0,3,7':'MIN','0,4,7,11':'MAJ7','0,3,7,10':'MIN7','0,4,7,10':'DOM7'};
 let activeNotes = new Map();
 let pedalOn = false;
 let energy = 0;
 let currentAnim = 'beams';
+let isMouseDown = false;
 
-// INIT KEYBOARD 88 KEYS
+// INITIALISATION DU CLAVIER INTERACTIF
 function initKeyboard() {
   const keyboard = document.getElementById('keyboard');
   const pattern = ['w','b','w','b','w','w','b','w','b','w','b','w']; 
+  
+  document.body.onmousedown = () => isMouseDown = true;
+  document.body.onmouseup = () => isMouseDown = false;
+
   for (let i = 21; i <= 108; i++) {
     const key = document.createElement('div');
     const type = pattern[i % 12];
     key.className = `key ${type === 'w' ? 'white' : 'black'}`;
     key.dataset.note = i;
+    
+    // Interactions Souris
+    key.addEventListener('mousedown', (e) => {
+      onMIDI({ data: [0x90, i, 100] });
+    });
+    key.addEventListener('mouseenter', () => {
+      if (isMouseDown) onMIDI({ data: [0x90, i, 100] });
+    });
+    key.addEventListener('mouseup', () => onMIDI({ data: [0x80, i, 0] }));
+    key.addEventListener('mouseleave', () => onMIDI({ data: [0x80, i, 0] }));
+
     keyboard.appendChild(key);
   }
 }
@@ -262,7 +276,7 @@ async function initMIDI() {
       document.getElementById('midiDot').classList.add('on');
       input.onmidimessage = onMIDI;
     }
-  } catch (err) { console.error("MIDI Error", err); }
+  } catch (err) { console.warn("MIDI non détecté, mode virtuel uniquement."); }
 }
 
 function onMIDI(event) {
@@ -273,7 +287,7 @@ function onMIDI(event) {
   if (type === 0x90 && velocity > 0) {
     activeNotes.set(note, { velocity, time: performance.now() });
     if(keyEl) keyEl.classList.add('active');
-    energy = Math.min(1, energy + 0.2);
+    energy = Math.min(1, energy + 0.15);
     updateUI(note, velocity);
   } else if (type === 0x80 || (type === 0x90 && velocity === 0)) {
     activeNotes.delete(note);
@@ -284,7 +298,14 @@ function onMIDI(event) {
   }
   
   if (window.fbReady) {
-    window.pianoState = { ...window.pianoState, animation: currentAnim, notes: Array.from(activeNotes.entries()).map(([n, d]) => ({note: n, velocity: d.velocity})), pedal: pedalOn, energy };
+    window.pianoState = { 
+      ...window.pianoState, 
+      animation: currentAnim, 
+      notes: Array.from(activeNotes.entries()).map(([n, d]) => ({note: n, velocity: d.velocity})), 
+      pedal: pedalOn, 
+      energy,
+      timestamp: Date.now()
+    };
     window.pushState();
   }
 }
@@ -304,24 +325,37 @@ function setAnim(name, el) {
   el.classList.add('active');
 }
 
-// SIMPLIFIED PREVIEW RENDER
+// RENDER VISUALISEUR
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
+
 function render() {
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  energy = Math.max(0, energy - 0.01);
+  
+  energy = Math.max(0, energy - 0.005);
   document.getElementById('energyFill').style.height = (energy * 100) + '%';
+  document.getElementById('energyNum').textContent = Math.round(energy * 100);
   
   activeNotes.forEach((data, note) => {
-    ctx.fillStyle = currentAnim === 'beams' ? varColor('--cyan') : varColor('--rose');
-    ctx.fillRect((note-21)/88 * canvas.width, canvas.height - (data.velocity*2), 10, data.velocity*2);
+    const x = ((note - 21) / 88) * canvas.width;
+    const h = (data.velocity / 127) * canvas.height * 0.5;
+    
+    const grad = ctx.createLinearGradient(x, canvas.height, x, canvas.height - h);
+    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--cyan'));
+    grad.addColorStop(1, 'transparent');
+    
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, canvas.height - h, (canvas.width / 88) * 0.8, h);
   });
+  
   requestAnimationFrame(render);
 }
-function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
 function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
-window.addEventListener('resize', resize); resize(); render();
+window.addEventListener('resize', resize); 
+resize(); 
+render();
 </script>
 </body>
-      </html>
+</html>
