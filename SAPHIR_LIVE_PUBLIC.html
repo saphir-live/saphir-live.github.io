@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SAPHIR — PUBLIC</title>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⚙️ UTILISEZ VOTRE CONFIG FIREBASE EXACTE ICI
+  const firebaseConfig = {
+        apiKey:            "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+        authDomain:        "saphir-live.firebaseapp.com",
+        projectId:         "saphir-live",
+        storageBucket:     "saphir-live.firebasestorage.app",
+        messagingSenderId: "719917557935",
+        appId:             "1:719917557935:web:3a7a4e1a846732c1afcc5a",
+        measurementId:     "G-VQQ9H234NB",
+        databaseURL:       "https://saphir-live-default-rtdb.firebaseio.com"
+    };
+
+  // Initialisation
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // Éléments DOM
+  const body = document.body;
+  const statusEl = document.getElementById('status-text');
+
+  // Variable pour gérer l'extinction
+  let fadeTimeout;
+
+  // Écouter les notes du Piano
+  onValue(ref(db, 'piano'), snap => {
+    const d = snap.val();
+    if (!d) return;
+
+    // Vérifier si c'est un événement NoteOn
+    if (d.lastEvent === 'noteOn' && d.lastColor) {
+      
+      // 1. Appliquer la couleur sur TOUT le fond
+      body.style.backgroundColor = d.lastColor;
+      
+      // Optionnel : Ajoute un léger flash blanc pour plus de dynamisme
+      body.classList.add('flash');
+      setTimeout(() => body.classList.remove('flash'), 50);
+
+      // Mettre à jour le texte d'attente (invisible après le premier signal)
+      if(statusEl) statusEl.style.opacity = '0';
+
+      // 2. Gérer l'extinction (fade to black)
+      clearTimeout(fadeTimeout);
+      // Le fond redevient noir après 1.5 seconde (ajustable)
+      fadeTimeout = setTimeout(() => {
+        body.style.backgroundColor = '#000000';
+      }, 1500); 
+    }
+  });
+
+</script>
+
+<style>
+  /* Base Reset */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Empêche le scroll */
+    background-color: #000000; /* Fond noir par défaut */
+    color: #ffffff;
+    font-family: sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Transition fluide pour le changement de couleur */
+    transition: background-color 0.1s ease-out; 
+    -webkit-tap-highlight-color: transparent; /* Désactive le flash de clic sur mobile */
+  }
+
+  /* Effet de flash optionnel */
+  body.flash {
+    filter: brightness(1.5) contrast(1.2);
+  }
+
+  /* Texte d'attente initial */
+  #status-text {
+    font-size: 14px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    transition: opacity 0.5s ease;
+    text-align: center;
+    padding: 20px;
+    pointer-events: none; /* Ne bloque pas les clics */
+  }
+
+  /* ─── BOUTON PLEIN ÉCRAN ─── */
+  #fs-btn {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    opacity: 1; /* Visible par défaut */
+  }
+
+  /* Icône SVG minimaliste */
+  #fs-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: rgba(255, 255, 255, 0.6);
+  }
+
+  /* 🔥 CLASSE CRUCIALE : Cache le bouton quand le plein écran est actif */
+  body.is-fullscreen #fs-btn {
+    opacity: 0;
+    transform: scale(0.5);
+    pointer-events: none; /* Désactive les clics quand invisible */
+  }
+
+  /* Hover effect pour desktop/simulateur */
+  @media (hover: hover) {
+    #fs-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    #fs-btn:hover svg {
+      fill: rgba(255, 255, 255, 1);
+    }
+  }
+</style>
+</head>
+<body>
+
+  <button id="fs-btn" onclick="toggleFS()" title="Activer l'expérience plein écran">
+    <svg viewBox="0 0 24 24">
+      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+    </svg>
+  </button>
+
+  <div id="status-text">
+    Utilisez le bouton en haut à droite<br>
+    pour démarrer l'expérience.<br><br>
+    En attente du signal...
+  </div>
+
+<script>
+  // ─── LOGIQUE PLEIN ÉCRAN (Adaptée Mobile) ───
+
+  const btn = document.getElementById('fs-btn');
+
+  function toggleFS() {
+    // Cibler le document complet
+    const doc = document.documentElement;
+
+    if (!document.fullscreenElement &&    // Standard
+        !document.webkitFullscreenElement && // Safari/iOS
+        !document.msFullscreenElement) {     // IE/Edge
+
+      // DEMANDER LE PLEIN ÉCRAN
+      if (doc.requestFullscreen) {
+        doc.requestFullscreen();
+      } else if (doc.webkitRequestFullscreen) { /* Safari/iOS */
+        doc.webkitRequestFullscreen();
+      } else if (doc.msRequestFullscreen) { /* IE11 */
+        doc.msRequestFullscreen();
+      }
+    } else {
+      // QUITTER LE PLEIN ÉCRAN
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  }
+
+  // Écouter le changement d'état du plein écran pour masquer/afficher le bouton
+  function onFSChange() {
+    // Vérifie si un élément est actuellement en plein écran
+    const isFS = document.fullscreenElement || 
+                 document.webkitFullscreenElement || 
+                 document.msFullscreenElement;
+
+    if (isFS) {
+      // Plein écran actif -> Ajouter la classe pour Cacher le bouton
+      document.body.classList.add('is-fullscreen');
+    } else {
+      // Plein écran inactif -> Retirer la classe pour Montrer le bouton
+      document.body.classList.remove('is-fullscreen');
+    }
+  }
+
+  // Enregistrer les écouteurs pour tous les navigateurs
+  document.addEventListener('fullscreenchange', onFSChange);
+  document.addEventListener('webkitfullscreenchange', onFSChange);
+  document.addEventListener('mozfullscreenchange', onFSChange);
+  document.addEventListener('MSFullscreenChange', onFSChange);
+
+</script>
+</body>
+</html>
