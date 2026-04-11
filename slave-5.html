@@ -42,6 +42,7 @@
     
     syncDot();
   }
+    enterFullscreen();
 });
 
   // Piano state (notes + animation mode)
@@ -688,6 +689,17 @@ function mainRender(ts){
   }
 }
 requestAnimationFrame(mainRender);
+
+  function enterFullscreen() {
+  const element = document.documentElement; // Cible toute la page
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.webkitRequestFullscreen) { /* Safari */
+    element.webkitRequestFullscreen();
+  } else if (element.msRequestFullscreen) { /* IE11 */
+    element.msRequestFullscreen();
+  }
+}
 </script>
 </body>
 </html>
