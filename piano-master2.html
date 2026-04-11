@@ -28,25 +28,20 @@
   window.pianoState = {
     animation: 'beams',
     notes: [],
-    chord: [],
     pedal: false,
-    bpm: 0,
     energy: 0,
-    register: 'mid',
-    timestamp: 0,
-    active: true
+    timestamp: 0
   };
 
   window.pushState = function() {
-    set(pianoRef, { ...window.pianoState, timestamp: Date.now() });
+    if(window.fbReady) {
+        set(pianoRef, { ...window.pianoState, timestamp: Date.now() });
+    }
   };
 
   onValue(pianoRef, (snap) => {
-    const d = snap.val();
-    if (d) {
-        const el = document.getElementById('fbDot');
-        if (el) { el.style.background = '#00ff88'; setTimeout(() => el.style.background = '#00d4ff', 300); }
-    }
+    const el = document.getElementById('fbDot');
+    if (el) { el.style.background = '#00ff88'; setTimeout(() => el.style.background = '#00d4ff', 300); }
   });
 
   window.fbReady = true;
@@ -54,193 +49,87 @@
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=IBM+Plex+Mono:wght@300;400;600&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
-  --bg: #03030a;
-  --s1: #0a0a18;
-  --s2: #0f0f20;
-  --border: #1c1c35;
-  --cyan: #00e5ff;
-  --amber: #ffab00;
-  --rose: #ff4d6d;
-  --lime: #aaff00;
-  --text: #b0b8d0;
-  --dim: #3a4060;
+  --bg: #03030a; --s1: #0a0a18; --s2: #0f0f20; --border: #1c1c35;
+  --cyan: #00e5ff; --amber: #ffab00; --rose: #ff4d6d; --lime: #aaff00;
+  --text: #b0b8d0; --dim: #3a4060;
 }
-
-html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; }
-
-.app {
-  display: grid;
-  grid-template-rows: 56px 1fr 140px;
-  grid-template-columns: 260px 1fr;
-  height: 100vh;
-}
-
-header {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(90deg, #0a0a18 0%, #03030a 100%);
-}
-
-.logo {
-  font-family: 'Syncopate', sans-serif;
-  font-size: 15px; font-weight: 700; letter-spacing: 6px;
-  color: var(--cyan); text-shadow: 0 0 20px rgba(0,229,255,0.5);
-}
-.logo em { color: var(--amber); font-style: normal; }
-
-.header-right { display: flex; align-items: center; gap: 20px; }
-
-.status-pill {
-  display: flex; align-items: center; gap: 8px;
-  border: 1px solid var(--border); padding: 5px 14px;
-  font-size: 10px; letter-spacing: 3px; background: var(--s1);
-}
-#fbDot, #midiDot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); transition: background 0.3s; }
-#midiDot.on { background: var(--lime); box-shadow: 0 0 10px var(--lime); }
-
-.role-tag {
-  font-family: 'Syncopate', sans-serif;
-  font-size: 10px; letter-spacing: 5px;
-  color: var(--amber); border: 1px solid var(--amber);
-  padding: 4px 12px; text-shadow: 0 0 10px var(--amber);
-}
-
-.sidebar {
-  border-right: 1px solid var(--border);
-  background: var(--s1); display: flex; flex-direction: column; overflow: hidden;
-}
-
-.sidebar-title { padding: 16px 20px 10px; font-size: 9px; letter-spacing: 4px; color: var(--dim); border-bottom: 1px solid var(--border); }
-
-.anim-list { flex: 1; overflow-y: auto; }
-
-.anim-item { padding: 16px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s; position: relative; }
-.anim-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; transition: background 0.2s; }
-.anim-item:hover { background: rgba(0,229,255,0.03); }
-.anim-item.active { background: rgba(0,229,255,0.06); }
-.anim-item.active::before { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
-
-.anim-name { font-family: 'Syncopate', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--text); margin-bottom: 4px; }
-.anim-item.active .anim-name { color: var(--cyan); }
-.anim-desc { font-size: 10px; color: var(--dim); line-height: 1.5; }
-
-.main { display: flex; flex-direction: column; background: #000; overflow: hidden; position: relative; }
-#previewCanvas { flex: 1; width: 100%; display: block; }
-
-/* PIANO KEYBOARD */
-.piano-keyboard {
-  display: flex; justify-content: center;
-  background: #000; padding: 10px 10px 5px 10px;
-  border-top: 1px solid var(--border);
-  height: 110px; position: relative;
-  user-select: none;
-}
-.key { position: relative; border: 1px solid #111; border-radius: 0 0 4px 4px; transition: all 0.05s ease; cursor: pointer; }
-.key.white { width: 1.13%; height: 100%; background: linear-gradient(180deg, #0a0a18 0%, #1a1a2e 100%); z-index: 1; }
-.key.black { width: 0.7%; height: 60%; background: #000; margin-left: -0.35%; margin-right: -0.35%; z-index: 2; border: 1px solid #333; }
-.key.active.white { background: var(--cyan) !important; box-shadow: 0 0 20px var(--cyan); transform: translateY(2px); }
-.key.active.black { background: var(--rose) !important; box-shadow: 0 0 20px var(--rose); transform: translateY(2px); }
-
-.midi-bar { grid-column: 1 / -1; background: var(--s2); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; }
-.midi-cell { padding: 12px 16px; border-right: 1px solid var(--border); }
-.midi-cell-label { font-size: 9px; letter-spacing: 3px; color: var(--dim); margin-bottom: 6px; }
-.midi-cell-val { font-family: 'Syncopate', sans-serif; font-size: 18px; color: var(--cyan); min-height: 24px; }
-
-.vel-bar-wrap { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-#velBar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-#velBarFill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--amber)); transition: width 0.1s; }
-
-#pedalDot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); transition: all 0.1s; margin-top: 4px; }
-#pedalDot.on { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 15px var(--amber); }
-
-.energy-ring { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; position: relative; overflow: hidden; }
-#energyFill { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, var(--rose), var(--amber)); height: 0%; transition: height 0.15s; opacity: 0.6; }
-
-#registerTag { display: inline-block; padding: 4px 12px; border: 1px solid var(--dim); font-size: 10px; letter-spacing: 3px; color: var(--dim); }
-#registerTag.bass { border-color: var(--rose); color: var(--rose); }
-#registerTag.mid { border-color: var(--cyan); color: var(--cyan); }
-#registerTag.high { border-color: var(--lime); color: var(--lime); }
-
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.modal-box { background: var(--s1); border: 1px solid var(--cyan); padding: 40px; max-width: 580px; width: 90%; }
-.modal-box h2 { font-family: 'Syncopate', sans-serif; font-size: 18px; letter-spacing: 8px; color: var(--cyan); margin-bottom: 24px; }
-.modal-btn { background: transparent; border: 1px solid var(--cyan); color: var(--cyan); font-family: 'IBM Plex Mono', monospace; padding: 10px 28px; cursor: pointer; margin-top: 12px; }
+body { height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'IBM Plex Mono', monospace; }
+.app { display: grid; grid-template-rows: 56px 1fr 140px; grid-template-columns: 260px 1fr; height: 100vh; }
+header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--s1); }
+.logo { font-family: 'Syncopate', sans-serif; font-size: 14px; letter-spacing: 4px; color: var(--cyan); }
+.status-pill { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); padding: 5px 12px; font-size: 10px; }
+#fbDot, #midiDot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.sidebar { border-right: 1px solid var(--border); background: var(--s1); }
+.anim-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 11px; }
+.anim-item.active { color: var(--cyan); border-left: 3px solid var(--cyan); background: rgba(0,229,255,0.05); }
+.main { display: flex; flex-direction: column; background: #000; position: relative; }
+#previewCanvas { flex: 1; width: 100%; }
+.piano-keyboard { display: flex; height: 100px; padding: 0 10px 10px; background: #000; border-top: 1px solid var(--border); user-select: none; }
+.key { position: relative; border: 1px solid #111; border-radius: 0 0 4px 4px; cursor: pointer; }
+.key.white { width: 1.13%; height: 100%; background: #1a1a2e; z-index: 1; }
+.key.black { width: 0.7%; height: 60%; background: #000; margin: 0 -0.35%; z-index: 2; border: 1px solid #333; }
+.key.active.white { background: var(--cyan) !important; box-shadow: 0 0 20px var(--cyan); }
+.key.active.black { background: var(--rose) !important; box-shadow: 0 0 20px var(--rose); }
+.midi-bar { grid-column: 1 / -1; background: var(--s2); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(6, 1fr); }
+.midi-cell { padding: 15px; border-right: 1px solid var(--border); }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-box { background: var(--s1); padding: 30px; border: 1px solid var(--cyan); text-align: center; }
 </style>
 </head>
 <body>
 
 <div class="modal" id="modal">
   <div class="modal-box">
-    <h2>CONFIGURATION</h2>
-    <p>1. Configurez vos clés Firebase dans le script.</p>
-    <p>2. Branchez votre piano MIDI ou utilisez le clavier virtuel.</p>
-    <button class="modal-btn" onclick="document.getElementById('modal').remove(); initMIDI();">DÉMARRER</button>
+    <h2 style="color:var(--cyan); margin-bottom:15px;">PIANO MASTER</h2>
+    <button style="padding:10px 20px; cursor:pointer;" onclick="startApp()">ACTIVER L'INTERFACE</button>
   </div>
 </div>
 
 <div class="app">
   <header>
-    <div class="logo">PIANO<em>LIGHT</em></div>
-    <div class="header-right">
-      <div class="status-pill"><div id="midiDot"></div> MIDI</div>
-      <div class="status-pill"><div id="fbDot"></div> FIREBASE</div>
-      <div class="role-tag">MASTER</div>
+    <div class="logo">PIANO MASTER</div>
+    <div style="display:flex; gap:10px;">
+        <div class="status-pill"><div id="midiDot"></div> MIDI</div>
+        <div class="status-pill"><div id="fbDot"></div> FIREBASE</div>
     </div>
   </header>
-
   <div class="sidebar">
-    <div class="sidebar-title">// ANIMATIONS</div>
-    <div class="anim-list" id="animList">
-      <div class="anim-item active" data-anim="beams" onclick="setAnim('beams',this)"><div class="anim-name">BEAMS</div></div>
-      <div class="anim-item" data-anim="aurora" onclick="setAnim('aurora',this)"><div class="anim-name">AURORA</div></div>
-      <div class="anim-item" data-anim="particles" onclick="setAnim('particles',this)"><div class="anim-name">PARTICLES</div></div>
-      <div class="anim-item" data-anim="ripple" onclick="setAnim('ripple',this)"><div class="anim-name">RIPPLE</div></div>
-      <div class="anim-item" data-anim="spectrum" onclick="setAnim('spectrum',this)"><div class="anim-name">SPECTRUM</div></div>
-      <div class="anim-item" data-anim="galaxy" onclick="setAnim('galaxy',this)"><div class="anim-name">GALAXY</div></div>
-    </div>
+    <div class="anim-item active" onclick="setAnim('beams', this)">BEAMS</div>
+    <div class="anim-item" onclick="setAnim('aurora', this)">AURORA</div>
+    <div class="anim-item" onclick="setAnim('particles', this)">PARTICLES</div>
   </div>
-
   <div class="main">
     <canvas id="previewCanvas"></canvas>
     <div class="piano-keyboard" id="keyboard"></div>
   </div>
-
   <div class="midi-bar">
-    <div class="midi-cell"><div class="midi-cell-label">APPAREIL</div><div id="deviceName">VIRTUEL / ATTENTE</div></div>
-    <div class="midi-cell"><div class="midi-cell-label">NOTE</div><div class="midi-cell-val" id="noteDisplay">—</div></div>
-    <div class="midi-cell">
-        <div class="midi-cell-label">VÉLOCITÉ</div>
-        <div class="vel-bar-wrap"><div id="velBar"><div id="velBarFill"></div></div><span id="velNum">0</span></div>
-    </div>
-    <div class="midi-cell"><div class="midi-cell-label">ACCORD</div><div id="chordDisplay">—</div></div>
-    <div class="midi-cell"><div id="registerTag" class="mid">MID</div><div id="pedalDot"></div></div>
-    <div class="midi-cell"><div class="energy-ring"><div id="energyFill"></div><span id="energyNum">0</span></div></div>
+    <div class="midi-cell"><div>NOTE</div><div id="noteDisplay" style="font-size:20px; color:var(--cyan);">—</div></div>
+    <div class="midi-cell"><div>VELOCITY</div><div id="velNum" style="font-size:20px;">0</div></div>
+    <div class="midi-cell"><div>ENERGY</div><div id="energyNum" style="font-size:20px;">0</div></div>
   </div>
 </div>
 
 <script>
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let activeNotes = new Map();
-let pedalOn = false;
-let energy = 0;
+const activeNotes = new Map();
 let currentAnim = 'beams';
+let energy = 0;
 let isMouseDown = false;
 
-// INITIALISATION DU CLAVIER INTERACTIF
+function startApp() {
+    document.getElementById('modal').remove();
+    initKeyboard();
+    initMIDI();
+    render();
+}
+
 function initKeyboard() {
   const keyboard = document.getElementById('keyboard');
-  const pattern = ['w','b','w','b','w','w','b','w','b','w','b','w']; 
+  const pattern = ['w','b','w','b','w','w','b','w','b','w','b','w'];
   
-  document.body.onmousedown = () => isMouseDown = true;
-  document.body.onmouseup = () => isMouseDown = false;
+  window.addEventListener('mousedown', () => isMouseDown = true);
+  window.addEventListener('mouseup', () => isMouseDown = false);
 
   for (let i = 21; i <= 108; i++) {
     const key = document.createElement('div');
@@ -248,114 +137,88 @@ function initKeyboard() {
     key.className = `key ${type === 'w' ? 'white' : 'black'}`;
     key.dataset.note = i;
     
-    // Interactions Souris
-    key.addEventListener('mousedown', (e) => {
-      onMIDI({ data: [0x90, i, 100] });
-    });
-    key.addEventListener('mouseenter', () => {
-      if (isMouseDown) onMIDI({ data: [0x90, i, 100] });
-    });
-    key.addEventListener('mouseup', () => onMIDI({ data: [0x80, i, 0] }));
-    key.addEventListener('mouseleave', () => onMIDI({ data: [0x80, i, 0] }));
-
+    // Événements Souris
+    key.addEventListener('mousedown', () => handleNoteOn(i, 100));
+    key.addEventListener('mouseenter', () => { if(isMouseDown) handleNoteOn(i, 100); });
+    key.addEventListener('mouseup', () => handleNoteOff(i));
+    key.addEventListener('mouseleave', () => handleNoteOff(i));
+    
     keyboard.appendChild(key);
   }
 }
-initKeyboard();
-
-function noteName(midi) { return NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1); }
-function getRegister(midi) { return midi < 48 ? 'bass' : (midi < 72 ? 'mid' : 'high'); }
 
 async function initMIDI() {
-  try {
-    const access = await navigator.requestMIDIAccess();
-    const inputs = Array.from(access.inputs.values());
-    if (inputs.length > 0) {
-      const input = inputs[0];
-      document.getElementById('deviceName').textContent = input.name;
-      document.getElementById('midiDot').classList.add('on');
-      input.onmidimessage = onMIDI;
-    }
-  } catch (err) { console.warn("MIDI non détecté, mode virtuel uniquement."); }
+  if (navigator.requestMIDIAccess) {
+    try {
+      const midi = await navigator.requestMIDIAccess();
+      document.getElementById('midiDot').style.background = '#ffaa00';
+      midi.inputs.forEach(input => {
+        document.getElementById('midiDot').style.background = '#00ff88';
+        input.onmidimessage = (msg) => {
+            const [status, note, vel] = msg.data;
+            if((status & 0xf0) === 0x90 && vel > 0) handleNoteOn(note, vel);
+            else if((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && vel === 0)) handleNoteOff(note);
+        };
+      });
+    } catch(e) { console.log("MIDI bloqué ou non supporté"); }
+  }
 }
 
-function onMIDI(event) {
-  const [status, note, velocity] = event.data;
-  const type = status & 0xf0;
-  const keyEl = document.querySelector(`.key[data-note="${note}"]`);
-
-  if (type === 0x90 && velocity > 0) {
-    activeNotes.set(note, { velocity, time: performance.now() });
-    if(keyEl) keyEl.classList.add('active');
-    energy = Math.min(1, energy + 0.15);
-    updateUI(note, velocity);
-  } else if (type === 0x80 || (type === 0x90 && velocity === 0)) {
-    activeNotes.delete(note);
-    if(keyEl) keyEl.classList.remove('active');
-  } else if (type === 0xb0 && note === 64) {
-    pedalOn = velocity >= 64;
-    document.getElementById('pedalDot').className = pedalOn ? 'on' : '';
-  }
+function handleNoteOn(note, vel) {
+  if (activeNotes.has(note)) return; // Évite les répétitions si on glisse
+  activeNotes.set(note, { vel, time: Date.now() });
+  const key = document.querySelector(`.key[data-note="${note}"]`);
+  if(key) key.classList.add('active');
   
+  energy = Math.min(1, energy + 0.15);
+  document.getElementById('noteDisplay').textContent = note;
+  document.getElementById('velNum').textContent = vel;
+  
+  sync();
+}
+
+function handleNoteOff(note) {
+  activeNotes.delete(note);
+  const key = document.querySelector(`.key[data-note="${note}"]`);
+  if(key) key.classList.remove('active');
+  sync();
+}
+
+function sync() {
   if (window.fbReady) {
-    window.pianoState = { 
-      ...window.pianoState, 
-      animation: currentAnim, 
-      notes: Array.from(activeNotes.entries()).map(([n, d]) => ({note: n, velocity: d.velocity})), 
-      pedal: pedalOn, 
-      energy,
-      timestamp: Date.now()
-    };
+    window.pianoState.notes = Array.from(activeNotes.entries()).map(([n, d]) => ({note: n, velocity: d.vel}));
+    window.pianoState.energy = energy;
+    window.pianoState.animation = currentAnim;
     window.pushState();
   }
 }
 
-function updateUI(note, velocity) {
-  document.getElementById('noteDisplay').textContent = noteName(note);
-  document.getElementById('velNum').textContent = velocity;
-  document.getElementById('velBarFill').style.width = (velocity / 127 * 100) + '%';
-  const reg = getRegister(note);
-  const regEl = document.getElementById('registerTag');
-  regEl.textContent = reg.toUpperCase(); regEl.className = reg;
+function setAnim(anim, el) {
+    currentAnim = anim;
+    document.querySelectorAll('.anim-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    sync();
 }
 
-function setAnim(name, el) {
-  currentAnim = name;
-  document.querySelectorAll('.anim-item').forEach(i => i.classList.remove('active'));
-  el.classList.add('active');
-}
-
-// RENDER VISUALISEUR
+// VISUALISATION SIMPLE POUR TESTER
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
-
 function render() {
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,canvas.width, canvas.height);
   
-  energy = Math.max(0, energy - 0.005);
-  document.getElementById('energyFill').style.height = (energy * 100) + '%';
+  energy = Math.max(0, energy - 0.01);
   document.getElementById('energyNum').textContent = Math.round(energy * 100);
-  
+
   activeNotes.forEach((data, note) => {
-    const x = ((note - 21) / 88) * canvas.width;
-    const h = (data.velocity / 127) * canvas.height * 0.5;
-    
-    const grad = ctx.createLinearGradient(x, canvas.height, x, canvas.height - h);
-    grad.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--cyan'));
-    grad.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = grad;
-    ctx.fillRect(x, canvas.height - h, (canvas.width / 88) * 0.8, h);
+    const x = ((note-21)/88) * canvas.width;
+    ctx.fillStyle = currentAnim === 'beams' ? '#00e5ff' : '#ff4d6d';
+    ctx.fillRect(x, canvas.height - 100, 10, -data.vel * 2);
   });
-  
   requestAnimationFrame(render);
 }
-
-function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
-window.addEventListener('resize', resize); 
-resize(); 
-render();
 </script>
 </body>
 </html>
