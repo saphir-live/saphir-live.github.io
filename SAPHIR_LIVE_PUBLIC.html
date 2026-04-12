@@ -127,14 +127,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-const auth = getAuth();
-signInAnonymously(auth).then(() => {
-    console.log("Spectateur connecté anonymement.");
-});
-        
         import { getDatabase, ref, onValue, set, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -146,6 +138,13 @@ signInAnonymously(auth).then(() => {
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth();
+signInAnonymously(auth).then(() => {
+    console.log("Spectateur connecté anonymement.");
+});
 
         let currentSessionId = 0;
         let hasVoted = false;
