@@ -1,308 +1,229 @@
-   <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SAPHIR LIVE ! | Votez pour le morceau</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@300;500&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SAPHIR LIVE ! | Public</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Montserrat:wght@300;600&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --neon: #00e5ff; --bg: #050505; }
-        body { 
-            background: var(--bg); color: white; font-family: 'Montserrat', sans-serif; 
-            margin: 0; padding: 20px; text-align: center; overflow-x: hidden;
-           transition: background-color 0.8s ease; /* Transition douce pour un effet immersif */
-           background-color: var(--bg);
+        :root { --neon: #00e5ff; --bg: #000000; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: var(--bg); color: white; 
+            font-family: 'Montserrat', sans-serif; 
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.15s ease-out;
         }
 
-       #session-badge {
-    display: inline-block;
-    background: rgba(0, 229, 255, 0.1);
-    border: 1px solid var(--neon);
-    color: var(--neon);
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin-bottom: 15px;
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-    text-transform: uppercase;
-}
+        /* --- OVERLAY DE VOTE --- */
+        #vote-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: scale(1.1);
+        }
 
-#display-session-id {
-    font-size: 0.9rem;
-}
-       
-        h1 { font-family: 'Cinzel', serif; color: var(--neon); letter-spacing: 5px; margin-bottom: 5px; }
-        p { opacity: 0.7; font-size: 0.9rem; margin-bottom: 30px; }
+        #vote-overlay.active {
+            opacity: 1; pointer-events: auto;
+            transform: scale(1);
+        }
 
-        .vote-container { display: flex; flex-direction: column; gap: 20px; max-width: 400px; margin: 0 auto; }
-        
-        .choice-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 229, 255, 0.2);
-            padding: 25px;
-            border-radius: 15px;
+        .vote-card {
+            width: 85%; max-width: 400px;
+            text-align: center;
+        }
+
+        #session-badge {
+            display: inline-block;
+            border: 1px solid var(--neon);
+            color: var(--neon);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        h1 { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.6rem; 
+            margin-bottom: 25px; 
+            color: white;
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+        }
+
+        #vote-question {
+            font-size: 1rem; margin-bottom: 30px; font-weight: 300; line-height: 1.4;
+        }
+
+        /* Grille des boutons de vote */
+        #vote-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
+            transition: all 0.2s ease;
         }
-        .choice-card:active { transform: scale(0.95); background: rgba(0, 229, 255, 0.1); }
-        .choice-card.selected { border-color: var(--neon); box-shadow: 0 0 20px var(--neon); background: rgba(0, 229, 255, 0.05); }
 
-        h3 { margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; }
+        .option-btn:active {
+            background: var(--neon);
+            color: black;
+            transform: scale(0.95);
+        }
+
+        /* --- BOUTON PLEIN ÉCRAN --- */
+        #fs-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 200;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px; border-radius: 50%;
+            width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+        }
         
-        #status-msg { margin-top: 30px; font-size: 0.8rem; color: var(--neon); opacity: 0; transition: 0.5s; }
-        .visible { opacity: 1 !important; }
-       
+        body.is-fs #fs-btn { opacity: 0; pointer-events: none; }
+
+        #waiting-msg { font-size: 0.7rem; letter-spacing: 3px; opacity: 0.3; text-transform: uppercase; }
     </style>
 </head>
-<body>
-   <button id="fullscreen-btn" onclick="toggleFullScreen()" style="position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon); color: var(--neon); padding: 8px 12px; border-radius: 5px; font-size: 10px; z-index: 1000; transition: opacity 1s ease; font-family: 'Montserrat', sans-serif; cursor: pointer;">
-    MODE IMMERSIF
-</button>
-    <div id="session-badge">SESSION <span id="display-session-id">1</span></div>
-    <h1>SAPHIR LIVE !</h1>
-    <p>Choisissez la suite du concert</p>
+<body onclick="handleFirstClick()">
 
-    <div class="vote-container">
-        <div class="choice-card" id="btn-m1" onclick="submitVote('m1')">
-            <h3 id="label-m1">Chargement...</h3>
-        </div>
-        <div class="choice-card" id="btn-m2" onclick="submitVote('m2')">
-            <h3 id="label-m2">Chargement...</h3>
-        </div>
-        <div class="choice-card" id="btn-m3" onclick="submitVote('m3')">
-            <h3 id="label-m3">Chargement...</h3>
+    <button id="fs-btn" onclick="toggleFS()">
+        <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </button>
+
+    <div id="waiting-msg">En attente du signal SAPHIR...</div>
+
+    <div id="vote-overlay">
+        <div class="vote-card">
+            <div id="session-badge">SAPHIR LIVE!</div>
+            <h1 id="vote-title">VOTRE CHOIX</h1>
+            <p id="vote-question">Chargement du vote...</p>
+            
+            <div id="vote-options">
+                </div>
         </div>
     </div>
 
-    <div id="status-msg">VOTE ENREGISTRÉ !</div>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        
-    const firebaseConfig = {
-  apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
-  authDomain: "saphir-live.firebaseapp.com",
-  projectId: "saphir-live",
-  storageBucket: "saphir-live.firebasestorage.app",
-  messagingSenderId: "719917557935",
-  appId: "1:719917557935:web:3a7a4e1a846732c1afcc5a",
-  measurementId: "G-VQQ9H234NB"
-};
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXOd8Sb_TsiYqwbebCnXTdZGimeheesR4",
+            authDomain: "saphir-live.firebaseapp.com",
+            projectId: "saphir-live",
+            databaseURL: "https://saphir-live-default-rtdb.firebaseio.com"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let currentPollId = "1";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-   onValue(ref(db, 'config/current_active_id'), (snapshot) => {
-    const activeId = snapshot.val() || "1";
-    currentPollId = activeId.toString();
-
-    // AJOUTE CETTE LIGNE ICI :
-    document.getElementById('display-session-id').innerText = currentPollId;
-
-    // Le reste de ta logique (verifierStatutVote, loadTitles...)
-    verifierStatutVote();
-    loadTitles(currentPollId);
+const auth = getAuth();
+signInAnonymously(auth).then(() => {
+    console.log("Spectateur connecté anonymement.");
 });
 
-    // 1. GÉNÉRER UN ID UNIQUE FIXE POUR CE NAVIGATEUR
-    function getDeviceID() {
-        let id = localStorage.getItem('saphir_uid');
-        if (!id) {
-            id = 'USR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            localStorage.setItem('saphir_uid', id);
-        }
-        return id;
-    }
+        let currentSessionId = 0;
+        let hasVoted = false;
 
-//const myID = getDeviceID();
-
-       
-// GÉNÉRATION D'UNE EMPREINTE UNIQUE (Même en navigation privée)
-function getFingerprint() {
-    try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        // On dessine un truc complexe que seul ce GPU rendra de cette façon
-        ctx.textBaseline = "top";
-        ctx.font = "16px 'Arial'";
-        ctx.fillStyle = "#f60";
-        ctx.fillRect(100, 5, 50, 20);
-        ctx.fillStyle = "#069";
-        ctx.fillText("Saphir-Live-v1", 2, 15);
-        ctx.fillStyle = "rgba(102, 204, 0, 0.5)";
-        ctx.fillText("Saphir-Live-v1", 4, 17);
-        
-        const b64 = canvas.toDataURL();
-        // Transformation de l'image en petit code numérique (Hash)
-        let hash = 0;
-        for (let i = 0; i < b64.length; i++) {
-            hash = ((hash << 5) - hash) + b64.charCodeAt(i);
-            hash |= 0;
-        }
-        return "fp_" + Math.abs(hash);
-    } catch (e) {
-        // Backup au cas où le canvas est bloqué
-        return "u_" + Math.random().toString(36).substr(2, 9);
-    }
-}
-       
-// On génère l'ID une seule fois au chargement
-const myID = getFingerprint();
-
-    // 2. ÉCOUTER LE CHANGEMENT DE SESSION (F1)
-    onValue(ref(db, 'config/current_active_id'), (snapshot) => {
-        currentPollId = (snapshot.val() || "1").toString();
-        verifierStatutVote(); // On vérifie IMMÉDIATEMENT si on a déjà voté
-        loadTitles(currentPollId);
-    });
-
-    // ÉCOUTER LA COULEUR D'AMBIANCE EN TEMPS RÉEL
-onValue(ref(db, 'config/room_color'), (snapshot) => {
-    const newColor = snapshot.val() || "#050505";
-    
-    // On change le fond du body
-    document.body.style.backgroundColor = newColor;
-    
-    // Optionnel : Si la couleur est très claire, on met le texte en noir pour qu'il reste lisible
-    const rgb = hexToRgb(newColor);
-    if (rgb && (rgb.r * 0.299 + rgb.g * 0.587 + rgb.b * 0.114) > 186) {
-        document.body.style.color = "#000000";
-    } else {
-        document.body.style.color = "#ffffff";
-    }
-});
-
-// Petite fonction utilitaire pour la lisibilité du texte
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-    // 3. LA FONCTION CLÉ : VÉRIFIER SUR FIREBASE
-    async function verifierStatutVote() {
-        const snapshot = await get(ref(db, `check_votes/session_${currentPollId}/${myID}`));
-        
-        const cards = document.querySelectorAll('.choice-card');
-        const msg = document.getElementById('status-msg');
-
-        if (snapshot.exists()) {
-            // DÉJÀ VOTÉ : On bloque tout
-            const monChoix = snapshot.val();
-            cards.forEach(card => {
-                card.style.pointerEvents = 'none';
-                card.classList.remove('selected');
-                card.style.opacity = "0.5";
-            });
-            document.getElementById('btn-' + monChoix).classList.add('selected');
-            document.getElementById('btn-' + monChoix).style.opacity = "1";
-            msg.innerText = "VOTE DÉJÀ ENREGISTRÉ";
-            msg.classList.add('visible');
-        } else {
-            // PAS ENCORE VOTÉ : On libère
-            cards.forEach(card => {
-                card.style.pointerEvents = 'auto';
-                card.style.opacity = "1";
-                card.classList.remove('selected');
-            });
-            msg.classList.remove('visible');
-        }
-    }
-
-    // 4. ACTION DE VOTER
-    window.submitVote = async function(choiceId) {
-        // Sécurité serveur : on vérifie si l'ID existe avant d'incrémenter
-        //const check = await get(ref(db, `check_votes/session_${currentPollId}/${myID}`));
-        //if (check.exists()) return;
-       const checkRef = ref(db, `check_votes/session_${currentPollId}/${myID}`);
-       const snapshot = await get(checkRef);
-
-    if (snapshot.exists()) {
-        alert("Saphir a bien reçu ton vote ! Un seul vote par session.");
-        return;
-    }
-
-        // Étape A : Enregistrer l'ID de l'utilisateur pour cette session
-        await set(ref(db, `check_votes/session_${currentPollId}/${myID}`), choiceId);
-
-        // Étape B : Incrémenter le compteur global (pour tes barres)
-        const voteRef = ref(db, `votes/session_${currentPollId}/${choiceId}`);
-        await runTransaction(voteRef, (val) => (val || 0) + 1);
-
-        // Étape C : Mettre à jour l'interface
-        verifierStatutVote();
-    };
-
-       // 2. CHARGER LES TITRES DYNAMIQUEMENT
-        function loadTitles(id) {
-            onValue(ref(db, `config/session_${id}/titles`), (snap) => {
-                const titles = snap.val() || { m1: "Choix 1", m2: "Choix 2", m3: "Choix 3" };
-                document.getElementById('label-m1').innerText = titles.m1;
-                document.getElementById('label-m2').innerText = titles.m2;
-                document.getElementById('label-m3').innerText = titles.m3;
-            });
-        }
-
-       let fullscreenTimeout;
-
-function showFullscreenBtn() {
-    const btn = document.getElementById('fullscreen-btn');
-    btn.style.opacity = "1";
-    btn.style.pointerEvents = "auto";
-    
-    // Annule le précédent timeout s'il existe
-    clearTimeout(fullscreenTimeout);
-    
-    // Cache le bouton après 5 secondes d'inactivité
-    fullscreenTimeout = setTimeout(() => {
-        btn.style.opacity = "0";
-        btn.style.pointerEvents = "none";
-    }, 5000);
-}
-
-window.toggleFullScreen = function() {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log("Erreur plein écran: " + err.message);
+        // --- ÉCOUTE DES NOTES (COULEUR DE FOND) ---
+        let fadeTimeout;
+        onValue(ref(db, 'piano'), snap => {
+            const d = snap.val();
+            if (d && d.lastEvent === 'noteOn') {
+                document.body.style.backgroundColor = d.lastColor || '#00d4ff';
+                document.getElementById('waiting-msg').style.opacity = '0';
+                clearTimeout(fadeTimeout);
+                fadeTimeout = setTimeout(() => { document.body.style.backgroundColor = '#000000'; }, 1000);
+            }
         });
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-};
 
-// Écouter les changements de mode plein écran
-document.addEventListener('fullscreenchange', () => {
-    const btn = document.getElementById('fullscreen-btn');
-    if (document.fullscreenElement) {
-        btn.innerText = "QUITTER LE PLEIN ÉCRAN";
-        showFullscreenBtn(); // Lance le décompte pour disparaître
-    } else {
-        btn.innerText = "MODE IMMERSIF";
-        btn.style.opacity = "1";
-        btn.style.pointerEvents = "auto";
-        clearTimeout(fullscreenTimeout);
-    }
-});
+        // --- ÉCOUTE DES VOTES (SYNCHRO MASTER) ---
+        onValue(ref(db, 'lights/currentVote'), snap => {
+            const vote = snap.val();
+            const overlay = document.getElementById('vote-overlay');
+            
+            if (vote && vote.active) {
+                // Si c'est une nouvelle session de vote, on réinitialise l'état "a voté"
+                if (vote.sessionId !== currentSessionId) {
+                    currentSessionId = vote.sessionId;
+                    hasVoted = false;
+                }
 
-// Si l'utilisateur touche l'écran, le bouton réapparaît brièvement
-document.addEventListener('touchstart', showFullscreenBtn);
-document.addEventListener('mousemove', showFullscreenBtn);
+                if (!hasVoted) {
+                    document.getElementById('vote-question').innerText = vote.question;
+                    const container = document.getElementById('vote-options');
+                    container.innerHTML = ''; // Nettoyer les anciens boutons
 
-// Lancer le timer au chargement
-showFullscreenBtn();
+                    // Génération dynamique des choix (jusqu'à 4)
+                    vote.options.forEach((optText, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn';
+                        btn.innerText = optText;
+                        btn.onclick = () => submitVote(index + 1);
+                        container.appendChild(btn);
+                    });
+
+                    overlay.classList.add('active');
+                }
+            } else {
+                overlay.classList.remove('active');
+            }
+        });
+
+        // --- ENVOI DU VOTE ---
+        window.submitVote = function(optionIndex) {
+            hasVoted = true;
+            document.getElementById('vote-overlay').classList.remove('active');
+
+            // On incrémente le compteur spécifique sur Firebase
+            const voteRef = ref(db, `votes/session_${currentSessionId}/m${optionIndex}`);
+            set(voteRef, increment(1));
+            
+            // Petit feedback visuel
+            document.body.style.backgroundColor = 'rgba(0, 229, 255, 0.5)';
+            setTimeout(() => { document.body.style.backgroundColor = '#000000'; }, 200);
+        };
+
+        // --- PLEIN ÉCRAN & INTERACTION ---
+        window.toggleFS = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        document.addEventListener('fullscreenchange', () => {
+            document.body.classList.toggle('is-fs', !!document.fullscreenElement);
+        });
+
+        window.handleFirstClick = function() {
+            // Optionnel : déclencher un son vide pour débloquer l'audio sur iOS
+        };
     </script>
 </body>
-</html>
-
 </html>
