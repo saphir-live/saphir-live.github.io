@@ -32,10 +32,6 @@ signInAnonymously(auth).then(() => {
 });
 
   // Lights state (beams)
-  //onValue(ref(db,'lights'), snap => {
-  //  const d=snap.val();
-  //  if(d){ window.lightState=d; syncDot(); }
-  //});
   onValue(ref(db,'lights'), snap => {
   const d = snap.val();
   if(d){ 
