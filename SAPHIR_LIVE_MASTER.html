@@ -7,21 +7,6 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-const auth = getAuth();
-
-// Connexion automatique avec tes identifiants (créés dans la console Firebase)
-signInWithEmailAndPassword(auth, "zhang.gaetan@gmail.com", "saphirlive2026direct")
-  .then(() => {
-    console.log("Saphir identifié : Accès Master accordé.");
-  })
-  .catch((error) => {
-    console.error("Erreur d'authentification : ", error.message);
-  });
-
-  
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   // ⚙️ REMPLACEZ PAR VOTRE CONFIG FIREBASE
@@ -38,6 +23,23 @@ signInWithEmailAndPassword(auth, "zhang.gaetan@gmail.com", "saphirlive2026direct
 
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
+
+
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth();
+
+// Connexion automatique avec tes identifiants (créés dans la console Firebase)
+signInWithEmailAndPassword(auth, "zhang.gaetan@gmail.com", "saphirlive2026direct")
+  .then(() => {
+    console.log("Saphir identifié : Accès Master accordé.");
+  })
+  .catch((error) => {
+    console.error("Erreur d'authentification : ", error.message);
+  });
+
+
+  
   window._lightsRef = ref(db, 'lights');
   window._pianoRef  = ref(db, 'piano');
   window._fbSet     = set;
